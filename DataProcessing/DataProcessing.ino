@@ -112,7 +112,10 @@ void loop() {
       delete(tempNode);
       
     } else {
-      float relAngle = car0.heading - relativeAngle(car0.xPosition, car0.yPosition, tempCar.xPosition, tempCar.yPosition);
+      float startR = tempCar.velocity*initialT+1/2*tempCar.acceleration*pow(initialT,2);
+      float startX = startR*cos(tempCar.heading);
+      float startY = startR*sin(tempCar.heading);
+      float relAngle = car0.heading - relativeAngle(car0.xPosition, car0.yPosition, startX, startY);
       relAngle = abs(fmod((relAngle + PI),(2*PI)) - PI);
       float diffHeading = car0.heading - tempCar.heading;
       diffHeading = abs(fmod((diffHeading + PI),(2*PI)) - PI);
@@ -153,8 +156,11 @@ void calculateCarTrajectory(Car_t c, float x[], float y[], float u[], float dt, 
   
   x[0] = c.xPosition;
   y[0] = c.yPosition;
-  r[0] = c.velocity*initialT+1/2*c.acceleration*pow(initialT,2);;
+  r[0] = c.velocity*initialT+1/2*c.acceleration*pow(initialT,2);
   u[0] = r[0]*UNCERTAINTY;
+
+  float xHeading = cos(c.heading);
+  float yHeading = sin(c.heading);
   
   bool carStopped = false;
   
@@ -168,8 +174,8 @@ void calculateCarTrajectory(Car_t c, float x[], float y[], float u[], float dt, 
         y[i] = y[i-1];
         u[i] = u[i-1];
       } else {
-        x[i] = c.xPosition+r[i]*cos(c.heading);
-        y[i] = c.yPosition+r[i]*sin(c.heading);
+        x[i] = c.xPosition+r[i]*xHeading;
+        y[i] = c.yPosition+r[i]*yHeading;
         u[i] = r[i]*UNCERTAINTY;
       }
     } else {
