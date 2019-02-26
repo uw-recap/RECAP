@@ -13,15 +13,25 @@ Follow the guides provided by Adafruit to add the board support packages to the 
 ### Libraries
 Download and install the following libraries under `C:\Users\username\Documents\Arduino\libraries`
 
+Scheduler:
+
+Use the Library Manager to install the **Scheduler** library.
+
+Adafruit TFT Library:
+
+Use the Library Manager to install the **Adafruit GFX Library** and **Adafruit HX8357 Library**.
+
+Time Library:
+
+```
+git clone https://github.com/PaulStoffregen/Time.git
+```
+
 Adafruit GPS Library:
 
 ```
 git clone https://github.com/adafruit/Adafruit_GPS.git
 ```
-
-Adafruit TFT Library:
-
-Use the Library Manager to install the **Adafruit GFX Library** and **Adafruit HX8357 Library**.
 
 Modified LoRa Library:
 
