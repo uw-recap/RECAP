@@ -6,7 +6,7 @@ Repository for storing code relating to MTE 481/482 Capstone Design Project
 ## Environment Set-up
 
 ### Arduino IDE
-Follow the guides provided by Adafruit to add the board support packages to the arduino IDE. 
+Follow the guides provided by Adafruit to add the board support packages to the arduino IDE.
 * [Step 1: Add the Adafruit repository to the package manager](https://learn.adafruit.com/adafruit-feather-m0-radio-with-lora-radio-module/setup)
 * [Step 2: Install the board support packages](https://learn.adafruit.com/adafruit-feather-m0-radio-with-lora-radio-module/using-with-arduino-ide)
 
@@ -21,9 +21,7 @@ git clone https://github.com/adafruit/Adafruit_GPS.git
 
 Adafruit TFT Library:
 
-```
-git clone 
-```
+Use the Library Manager to install the **Adafruit GFX Library** and **Adafruit HX8357 Library**.
 
 Modified LoRa Library:
 
