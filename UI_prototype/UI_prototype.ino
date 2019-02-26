@@ -1,6 +1,15 @@
 //#define PLATFORM_ARDUINO_UNO
 #define PLATFORM_FEATHER_M0
 
+// Colors
+#define BLACK 0x0000
+#define WHITE 0xFFFF
+#define GREEN 0x05A3
+#define YELLOW 0xFFE0
+#define LIGHT_ORANGE 0xFCC0
+#define DARK_ORANGE 0xFBC0
+#define RED 0xF800
+
 #define BG_COLOR BLACK
 #define GRID_COLOR WHITE
 
@@ -10,23 +19,15 @@
 #define BRAKE_INPUT A0
 
 // LCD Specs
-#define LCD_MIN_HEIGHT 0
-#define LCD_MAX_HEIGHT 300
-#define LCD_WIDTH_LEFT 300
-#define LCD_WIDTH_RIGHT 154
-#define LCD_OFFSETX_LEFT 169
-#define LCD_OFFSETX_RIGHT 10
-#define LCD_OFFSETY 10
+#define LCD_MIN_HEIGHT 0      
+#define LCD_MAX_HEIGHT 300    // the height of the graph 
+#define LCD_WIDTH_LEFT 300    // the width of the left side of the screen (where the past data is shown)
+#define LCD_WIDTH_RIGHT 154   // the width of the right side of the screen (where the current data is shown)
+#define LCD_OFFSETX_LEFT 169  // where the left side of the graph starts
+#define LCD_OFFSETX_RIGHT 10  // where the right side of the graph starts
+#define LCD_OFFSETY 10        // where the grid ends and the actual graph starts
+#define LCD_NUM_SECTIONS 3    // how many sections the LCD screen should be split into
 #define GET_LCD_HEIGHT(value) map(value, BRAKE_MIN, BRAKE_MAX, LCD_MIN_HEIGHT, LCD_MAX_HEIGHT)
-
-// Colors
-#define BLACK 0x0000
-#define WHITE 0xFFFF
-#define GREEN 0x6FE0
-#define YELLOW 0xFFE0
-#define LIGHT_ORANGE 0xFCC0
-#define DARK_ORANGE 0xFBC0
-#define RED 0xF800
 
 #include <SPI.h>
 #include "Adafruit_GFX.h"
@@ -44,19 +45,14 @@
 #define TFT_RST -1 // RST can be set to -1 if you tie it to Arduino's reset
 #endif
 
-// Use hardware SPI (on Uno, #13, #12, #11) and the above for CS/DC
+// GLOBALS
 Adafruit_HX8357 tft = Adafruit_HX8357(TFT_CS, TFT_DC, TFT_RST);
-
-// SoftSPI - note that on some processors this might be *faster* than hardware SPI!
-//Adafruit_HX8357 tft = Adafruit_HX8357(TFT_CS, TFT_DC, MOSI, SCK, TFT_RST, MISO);
-
-// may be slow. consider writing a Fifo class for optimization
-short lcdHeightFifo[LCD_WIDTH_LEFT + 1];
+short lcdHeightFifo[LCD_WIDTH_LEFT];
+short sectionHeight = (LCD_MAX_HEIGHT - LCD_MIN_HEIGHT) / LCD_NUM_SECTIONS;
 
 void setup() {
   Serial.begin(115200);
   while(!Serial);
-//  Serial.println("HX8357D Test!"); 
 
   tft.begin(HX8357D);
   tft.setRotation(3);
@@ -71,101 +67,127 @@ void setup() {
 }
 
 void loop(void) {
-    unsigned long start = micros();
-    short potInput = analogRead(BRAKE_INPUT);
-        
-    Serial.print("Analog read: ");
-    Serial.println(potInput);
-    
-    short brakeValue = map(potInput, 0, 550, BRAKE_MIN, BRAKE_MAX);  
-    short lcdValue = GET_LCD_HEIGHT(BRAKE_MAX - brakeValue);
+  unsigned long start = micros();
+  short potInput = analogRead(BRAKE_INPUT);
+      
+  Serial.print("Analog read: ");
+  Serial.println(potInput);
+  
+  short brakeValue = map(potInput, 0, 550, BRAKE_MIN, BRAKE_MAX);  
+  short lcdValue = GET_LCD_HEIGHT(BRAKE_MAX - brakeValue);
 
-    drawNewValue(lcdValue);
-    Serial.print("Time to draw one value: ");
-    Serial.println(micros() - start);
+  drawNewValue(lcdValue);
+  Serial.print("Time to draw one value: ");
+  Serial.println(micros() - start);
 }
 
 // expects a value between LCD_HEIGHT_MIN and LCD_HEIGHT_MAX
-void drawNewValue(short value) {
-  short old_value = lcdHeightFifo[0];
-  short diff = value - old_value;
+void drawNewValue(short newValue) {
+  short oldValue = lcdHeightFifo[0];
+  short diff = newValue - oldValue;
+  short i;
+  uint16_t color;
 
   // draw the section on the right
   if (diff > 0) {
-    tft.fillRect(LCD_OFFSETX_RIGHT, LCD_OFFSETY + old_value, LCD_WIDTH_RIGHT, diff, pickColor(value));
+    for (i = 0; i < diff; i++) {
+      tft.drawFastHLine(LCD_OFFSETX_RIGHT, LCD_OFFSETY + oldValue + i, LCD_WIDTH_RIGHT, RED);
+    }
   } else {
-    // draw lines "downwards"
-    for (int i = 0; i > diff; i--) {
-      tft.drawFastHLine(LCD_OFFSETX_RIGHT, LCD_OFFSETY + old_value + i, LCD_WIDTH_RIGHT, BG_COLOR);
+    for (i = 0; i > diff; i--) {
+      tft.drawFastHLine(LCD_OFFSETX_RIGHT, LCD_OFFSETY + oldValue + i, LCD_WIDTH_RIGHT, BG_COLOR);
     }
   }   
-  drawMinorHGridRight(GRID_COLOR);
 
-  // draw the section on the left and shift all elements in the FIFO one down
-  for (int j = LCD_WIDTH_LEFT; j > 0; j--) {
-    old_value = lcdHeightFifo[j]; // new value - old value
-    short current_value = lcdHeightFifo[j-1];
-    diff = current_value - old_value; // if diff > 0, draw in color, starting from old_val. if diff < 0, draw in black, starting from old_val + diff
+  // draw the section on the left while shifting all elements in the FIFO one down
+  for (short j = LCD_WIDTH_LEFT - 1; j >= 0; j--) {
+    oldValue = lcdHeightFifo[j];
+
+    // if j == 0, then we're pushing the latest value to the beginning of the FIFO
+    // otherwise, we're just shifting the FIFO values down one
+    short currentValue = (j == 0) ? newValue : lcdHeightFifo[j-1];
+    diff = currentValue - oldValue; // if diff > 0, draw in color, starting from old_val. if diff < 0, draw in black, starting from old_val + diff
     
-    lcdHeightFifo[j] = current_value;
+    lcdHeightFifo[j] = currentValue;
     if (diff > 0) {
-      tft.drawFastVLine(LCD_OFFSETX_LEFT + j, LCD_OFFSETY + old_value, diff, pickColor(old_value));
+      color = pickColor(j);
+      tft.drawFastVLine(LCD_OFFSETX_LEFT + j, LCD_OFFSETY + oldValue, diff, color);  
     } else {
-      tft.drawFastVLine(LCD_OFFSETX_LEFT + j, LCD_OFFSETY + old_value + diff, -diff, BG_COLOR);  
+      tft.drawFastVLine(LCD_OFFSETX_LEFT + j, LCD_OFFSETY + oldValue + diff, -diff, BG_COLOR);  
     }      
-  }
-
-  // push the latest element to the front of the FIFO
-  lcdHeightFifo[0] = value;        
-  tft.drawFastVLine(LCD_OFFSETX_LEFT, LCD_OFFSETY, value, pickColor(value));
-  drawMinorHGridLeft(GRID_COLOR);
-
-}
-
-void drawMinorHGridRight(uint16_t gridColor) {
-  for (int i = 1; i <= 5; i++) {
-    tft.drawFastHLine(10, i*50 + 9, 154, gridColor);
-  }
-}
-
-void drawMinorHGridLeft(uint16_t gridColor) {
-  for (int i = 1; i <= 5; i++) {
-    tft.drawFastHLine(169, i*50 + 9, 300, gridColor);
   }
 }
 
 void drawFullGrid(uint16_t gridColor) {
+// These are defined here because they're not relevant to the rest of the program
+#define LCD_GRID_START_X 8
+#define LCD_GRID_START_Y 8
+#define LCD_GRID_HEIGHT  303
+#define LCD_GRID_WIDTH   462
+#define LCD_GRID_BORDER  2
+  
   // bottom horizontal
-  tft.drawFastHLine(8, 8, 464, gridColor);
-  tft.drawFastHLine(8, 9, 464, gridColor);
+  for (short i = 0; i < LCD_GRID_BORDER; i++) {
+    tft.drawFastHLine(LCD_GRID_START_X, LCD_GRID_START_Y + i, LCD_GRID_WIDTH, gridColor);
+  }
 
   // top horizontal
-  tft.drawFastHLine(8, 310, 464, gridColor);
-  tft.drawFastHLine(8, 311, 464, gridColor);
-
-  // left vertical
-  tft.drawFastVLine(8, 10, 300, gridColor);
-  tft.drawFastVLine(9, 10, 300, gridColor);
+  for (short i = 0; i < LCD_GRID_BORDER; i++) {
+    tft.drawFastHLine(LCD_GRID_START_X, LCD_GRID_START_Y + LCD_GRID_HEIGHT - i, LCD_GRID_WIDTH, gridColor);
+  }
 
   // right vertical
-  tft.drawFastVLine(470, 10, 300, gridColor);
-  tft.drawFastVLine(471, 10, 300, gridColor);
- 
-  // horizontal minor axes
-  drawMinorHGridRight(gridColor);
-  drawMinorHGridLeft(gridColor);
-  
-  for (int i = 0; i < 5; i++) {
-    // vertical "minor" axis
-    tft.drawFastVLine(164 + i, 10, 300, gridColor);
+  for (short i = 0; i < LCD_GRID_BORDER; i++) {
+    tft.drawFastVLine(LCD_GRID_START_X + i, LCD_GRID_START_Y, LCD_GRID_HEIGHT, gridColor);
+  }
+
+  // left vertical
+  for (short i = 0; i < LCD_GRID_BORDER; i++) {
+    tft.drawFastVLine(LCD_GRID_START_X + LCD_GRID_WIDTH - i, LCD_GRID_START_Y, LCD_GRID_HEIGHT, gridColor);
+  }
+   
+  for (short i = 0; i < 5; i++) {
+    // vertical separator
+    tft.drawFastVLine(LCD_OFFSETX_RIGHT + LCD_WIDTH_RIGHT + i, 10, 300, gridColor);
   }
 }
 
 // switches colors based on lcd value
-uint16_t pickColor(short lcdValue) {
-  if (lcdValue < 100) return GREEN;
-  else if (lcdValue < 150) return YELLOW;
-  else if (lcdValue < 200) return LIGHT_ORANGE;
-  else if (lcdValue < 250) return DARK_ORANGE;
-  else return RED;  
+uint16_t pickColor(short leftDistance) {
+  // this maps a value between 0-300 to a 16-bit color gradient. 
+  // but only for red. don't ask.
+  return RED - (leftDistance / 30) * 0x1800 - (((leftDistance / 3) % 10) / 3) * 0x0800;
+
+  // well, since you asked...
+  // here's an color value (as in HSV value) table for solid red (i.e. H = 0 and S = 100)
+  // |   V | => | 16-bit |
+  // |-----|----|--------|
+  // | 100 | => | 0xF800 |
+  // |  99 | => | 0xF800 |
+  // |  98 | => | 0xF800 |
+
+  // subtract 0x0800... 
+  
+  // |  97 | => | 0xF000 |
+  // |  96 | => | 0xF000 |
+  // |  95 | => | 0xF000 |
+
+  // subtract 0x0800 again...
+  
+  // |  94 | => | 0xE800 |
+  // |  93 | => | 0xE800 |
+  // |  92 | => | 0xE800 |
+  // |  91 | => | 0xE800 |
+
+  // subtract 0x0800 again...
+  
+  // |  90 | => | 0xE000 |
+
+  // So for every 3 (or 4) steps of V, the 16-bit value changes by 0x1800
+  
+  // |  80 | => | 0xC800 |
+  // |  70 | => | 0xB000 |
+  // | ... | => | ...    |
+  // |  10 | => | 0x1800 |
+  // |   0 | => | 0x0000 |
 }
