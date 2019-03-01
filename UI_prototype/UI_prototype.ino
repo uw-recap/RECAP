@@ -1,3 +1,12 @@
+//#define PRINT_SERIAL
+#ifdef PRINT_SERIAL
+  #define PRINT(value) Serial.print(value);
+  #define PRINTLN(value) Serial.println(value);
+#else
+  #define PRINT(value) ;
+  #define PRINTLN(value) ;
+#endif
+
 //#define PLATFORM_ARDUINO_UNO
 #define PLATFORM_FEATHER_M0
 
@@ -51,8 +60,11 @@ short lcdHeightFifo[LCD_WIDTH_LEFT];
 short sectionHeight = (LCD_MAX_HEIGHT - LCD_MIN_HEIGHT) / LCD_NUM_SECTIONS;
 
 void setup() {
-  Serial.begin(115200);
-  while(!Serial);
+
+  #ifdef PRINT_SERIAL
+    Serial.begin(115200);
+    while(!Serial); // wait until the Serial window has been opened
+  #endif
 
   tft.begin(HX8357D);
   tft.setRotation(3);
@@ -70,15 +82,15 @@ void loop(void) {
   unsigned long start = micros();
   short potInput = analogRead(BRAKE_INPUT);
       
-  Serial.print("Analog read: ");
-  Serial.println(potInput);
+  PRINT("Analog read: ");
+  PRINTLN(potInput);
   
   short brakeValue = map(potInput, 0, 550, BRAKE_MIN, BRAKE_MAX);  
   short lcdValue = GET_LCD_HEIGHT(BRAKE_MAX - brakeValue);
 
   drawNewValue(lcdValue);
-  Serial.print("Time to draw one value: ");
-  Serial.println(micros() - start);
+  PRINT("Time to draw one value: ");
+  PRINTLN(micros() - start);
 }
 
 // expects a value between LCD_HEIGHT_MIN and LCD_HEIGHT_MAX
