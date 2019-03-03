@@ -211,7 +211,7 @@ void loopGPS() {
     
     currentData.xPosition = WORLD_RADIUS*lonRad*cos(latRad);
     currentData.yPosition = WORLD_RADIUS*latRad;
-    currentData.heading = (GPS.angle/180-0.5)*PI;
+    currentData.heading = abs(fmod((GPS.angle/180.0 + 0.5)*PI,(2*PI)) - PI);
   }
   yield();
 }
