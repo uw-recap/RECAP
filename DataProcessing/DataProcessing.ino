@@ -6,8 +6,8 @@ typedef struct {
   int seconds; //sec
   float acceleration; // m/s^2
   float velocity; //m/s
-  float xPosition; //unitless (need to multiply by radius of earth)
-  float yPosition; //unitless (need to multiply by radius of earth)
+  double xPosition; //m
+  double yPosition; //m
   float heading; //radians
 } Car_t;
 
@@ -18,18 +18,18 @@ typedef struct CarNode {
 } CarNode_t;
 
 //Testing
-const int TOTAL_CARS = 100;
+#define TOTAL_CARS 100
 
-const int R = 6371; //Radius of earth in km
-const float VARIANCE = 10;
-const float MAX_VALID_TIME = 2.0;
-const float MAX_VALID_DIST = 10.0;
-const float MAX_VALID_ANGLE = PI/6;
-const float BRAKING_ACCELERATION = 3.4;
-const float REACTION_TIME = 0.15;
-const int TIMESTEPS = 100;
-const float UNCERTAINTY = 0.2;
-const float RISK_SCALE = 100;
+#define WORLD_RADIUS 6371000 //Radius of earth in m
+#define VARIANCE 10.0
+#define MAX_VALID_TIME 2.0
+#define MAX_VALID_DIST 10.0
+#define MAX_VALID_ANGLE PI/6
+#define BRAKING_ACCELERATION 3.4
+#define REACTION_TIME 0.15
+#define TIMESTEPS 100
+#define UNCERTAINTY 0.2
+#define RISK_SCALE 100.0
 
 long startTime = 0;
 long endTime = 0;
@@ -113,12 +113,15 @@ void loop() {
       
     } else {
       float startR = tempCar.velocity*initialT+1/2*tempCar.acceleration*pow(initialT,2);
-      float startX = startR*cos(tempCar.heading);
-      float startY = startR*sin(tempCar.heading);
+      float startX = tempCar.xPosition+startR*cos(tempCar.heading);
+      float startY = tempCar.yPosition+startR*sin(tempCar.heading);
+      
       float relAngle = car0.heading - relativeAngle(car0.xPosition, car0.yPosition, startX, startY);
       relAngle = abs(fmod((relAngle + PI),(2*PI)) - PI);
+      
       float diffHeading = car0.heading - tempCar.heading;
       diffHeading = abs(fmod((diffHeading + PI),(2*PI)) - PI);
+      
       if (relAngle < MAX_VALID_ANGLE && diffHeading < PI/2) {
         calculateCarTrajectory(tempCar, x1, y1, uncertainty1, dt, initialT);
         float carRisk = calculateRisk(x0, y0, uncertainty0, x1, y1, uncertainty1, dt, tMax);
@@ -153,14 +156,13 @@ Car_t randomCar(int id) {
 
 void calculateCarTrajectory(Car_t c, float x[], float y[], float u[], float dt, float initialT) {
   float r[TIMESTEPS+1];
-  
-  x[0] = c.xPosition;
-  y[0] = c.yPosition;
-  r[0] = c.velocity*initialT+1/2*c.acceleration*pow(initialT,2);
-  u[0] = r[0]*UNCERTAINTY;
-
   float xHeading = cos(c.heading);
   float yHeading = sin(c.heading);
+  
+  r[0] = c.velocity*initialT+1/2*c.acceleration*pow(initialT,2);
+  x[0] = c.xPosition + r[0]*xHeading;
+  y[0] = c.yPosition + r[0]*yHeading;
+  u[0] = r[0]*UNCERTAINTY;
   
   bool carStopped = false;
   

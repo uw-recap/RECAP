@@ -45,6 +45,8 @@ Modified Freematics OBD2 Library:
 git clone https://github.com/rcswift/ArduinoOBD.git
 ```
 
+Important Note: Must include the contents of the library folder not the git repo.
+
 ## Useful Links:
 
 * [Freematics Adapter](https://freematics.com/products/freematics-obd-ii-uart-adapter-mk2/)
