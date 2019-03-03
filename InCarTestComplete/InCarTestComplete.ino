@@ -21,6 +21,7 @@
 #define LORA_RST 4
 #define LORA_IRQ 3
 #define LORA_FREQ 915E6
+#define LORA_TRANS_INT 100
 
 //LCD
 //#define PLATFORM_ARDUINO_UNO
@@ -66,6 +67,13 @@
 #define TFT_RST -1 // RST can be set to -1 if you tie it to Arduino's reset
 #endif
 
+//LCD GRID
+#define LCD_GRID_START_X 8
+#define LCD_GRID_START_Y 8
+#define LCD_GRID_HEIGHT  303
+#define LCD_GRID_WIDTH   462
+#define LCD_GRID_BORDER  2
+
 //Data Processing
 #define WORLD_RADIUS 6371000 //Radius of earth in m
 #define VARIANCE 10.0
@@ -77,6 +85,7 @@
 #define TIMESTEPS 100
 #define UNCERTAINTY 0.2
 #define RISK_SCALE 100.0
+#define DATA_PROC_TRANS_INT 200
 
 typedef struct {
   int id;
@@ -100,10 +109,6 @@ typedef struct CarNode {
 Car_t currentData;
 Car_t receivedData;
 CarNode_t *carList = NULL;
-
-Adafruit_HX8357 tft = Adafruit_HX8357(TFT_CS, TFT_DC, TFT_RST);
-short lcdHeightFifo[LCD_WIDTH_LEFT];
-//short sectionHeight = (LCD_MAX_HEIGHT - LCD_MIN_HEIGHT) / LCD_NUM_SECTIONS;
 
 ////////////////////////////////////////////////////////////////////////////////
 // LoRa
@@ -168,7 +173,7 @@ void loopLoRa() {
   }
 
   // Transmit
-  if ((millis() - LoRaLastTransmitTime) > LoRaTransmitRate) {
+  if ((millis() - LoRaLastTransmitTime) > LORA_TRANS_INT) {
     LoRa.beginPacket();
     LoRa.write((uint8_t*)&currentData, sizeof(currentData));
     LoRa.waitCAD();
@@ -201,11 +206,11 @@ void loopGPS() {
     currentData.seconds = now();
     currentData.microseconds = micros();
 
-    float latRad = WORLD_RADIUS*GPS.latitude * PI/180;
-    float lonRad = WORLD_RADIUS*GPS.longitude * PI/180;
+    double latRad = GPS.latitude * PI/180;
+    double lonRad = GPS.longitude * PI/180;
     
-    currentData.xPosition = lonRad*cos(latRad);
-    currentData.yPosition = latRad;
+    currentData.xPosition = WORLD_RADIUS*lonRad*cos(latRad);
+    currentData.yPosition = WORLD_RADIUS*latRad;
     currentData.heading = (GPS.angle/180-0.5)*PI;
   }
   yield();
@@ -271,6 +276,10 @@ void loopOBD() {
 ////////////////////////////////////////////////////////////////////////////////
 // LCD Screen
 ////////////////////////////////////////////////////////////////////////////////
+Adafruit_HX8357 tft = Adafruit_HX8357(TFT_CS, TFT_DC, TFT_RST);
+short lcdHeightFifo[LCD_WIDTH_LEFT];
+//short sectionHeight = (LCD_MAX_HEIGHT - LCD_MIN_HEIGHT) / LCD_NUM_SECTIONS;
+
 void setupLCD() {
   tft.begin(HX8357D);
   tft.setRotation(3);
@@ -321,14 +330,7 @@ void drawNewValue(short newValue) {
   }
 }
 
-void drawFullGrid(uint16_t gridColor) {
-// These are defined here because they're not relevant to the rest of the program
-#define LCD_GRID_START_X 8
-#define LCD_GRID_START_Y 8
-#define LCD_GRID_HEIGHT  303
-#define LCD_GRID_WIDTH   462
-#define LCD_GRID_BORDER  2
-  
+void drawFullGrid(uint16_t gridColor) {  
   // bottom horizontal
   for (short i = 0; i < LCD_GRID_BORDER; i++) {
     tft.drawFastHLine(LCD_GRID_START_X, LCD_GRID_START_Y + i, LCD_GRID_WIDTH, gridColor);
@@ -398,15 +400,24 @@ uint16_t pickColor(short leftDistance) {
 ////////////////////////////////////////////////////////////////////////////////
 // Data Processing
 ////////////////////////////////////////////////////////////////////////////////
-float dist(float x0, float y0, float x1, float y1) {
+int lastDataProcessingTime = 0;
+double currentX[TIMESTEPS+1];
+double currentY[TIMESTEPS+1];
+float currentU[TIMESTEPS+1];
+  
+double tempX[TIMESTEPS+1];
+double tempY[TIMESTEPS+1];
+float tempU[TIMESTEPS+1];
+
+inline double dist(double x0, double y0, double x1, double y1) {
   return sqrt(pow(x1-x0,2)+pow(y1-y0,2));
 }
 
-float relativeAngle(float x0, float y0, float x1, float y1) {
+inline double relativeAngle(double x0, double y0, double x1, double y1) {
   return atan2((y1-y0), (x1-x0));
 }
 
-void calculateCarTrajectory(Car_t c, float x[], float y[], float u[], float dt, float initialT) {
+void calculateCarTrajectory(Car_t c, double x[], double y[], float u[], float dt, float initialT) {
   float r[TIMESTEPS+1];
   float xHeading = cos(c.heading);
   float yHeading = sin(c.heading);
@@ -440,7 +451,7 @@ void calculateCarTrajectory(Car_t c, float x[], float y[], float u[], float dt, 
   }
 }
 
-float calculateRisk(float x0[], float y0[], float u0[], float x1[], float y1[], float u1[], float dt, float tMax) {
+float calculateRisk(double x0[], double y0[], float u0[], double x1[], double y1[], float u1[], float dt, float tMax) {
   float maxRisk = 0;
 
   for (int i=1;i<=TIMESTEPS;i++) {
@@ -457,62 +468,60 @@ float calculateRisk(float x0[], float y0[], float u0[], float x1[], float y1[], 
 }
 
 void loopDataProcessing() {
-  float tMax = currentData.velocity/BRAKING_ACCELERATION + REACTION_TIME;
-  float dt = tMax/TIMESTEPS;
-
-  float x0[TIMESTEPS+1];
-  float y0[TIMESTEPS+1];
-  float uncertainty0[TIMESTEPS+1];
-
-  float x1[TIMESTEPS+1];
-  float y1[TIMESTEPS+1];
-  float uncertainty1[TIMESTEPS+1];
-
-  calculateCarTrajectory(currentData, x0, y0, uncertainty0, dt, 0);
+  if ((millis() - lastDataProcessingTime) > DATA_PROC_TRANS_INT) {
+    lastDataProcessingTime = millis();
+    
+    float tMax = currentData.velocity/BRAKING_ACCELERATION + REACTION_TIME;
+    float dt = tMax/TIMESTEPS;
   
-  float maxRisk = 0.0;
-  CarNode_t *currentNode = carList;
-  
-  while (currentNode != NULL) {
-    Car_t tempCar = currentNode->car;
-    float initialT = (currentData.seconds-tempCar.seconds)+(currentData.microseconds-tempCar.microseconds)/1000000.0;
-    if (initialT > MAX_VALID_TIME) {
-      CarNode_t *tempNode = currentNode;
-      currentNode = currentNode->next;
-      
-      if (tempNode->prev != NULL) {
-        tempNode->prev->next = tempNode->next;
+    calculateCarTrajectory(currentData, currentX, currentY, currentU, dt, 0);
+    
+    float maxRisk = 0.0;
+    CarNode_t *currentNode = carList;
+    
+    while (currentNode != NULL) {
+      Car_t tempCar = currentNode->car;
+      float initialT = (currentData.seconds-tempCar.seconds)+(currentData.microseconds-tempCar.microseconds)/1000000.0;
+      if (initialT > MAX_VALID_TIME) {
+        CarNode_t *tempNode = currentNode;
+        currentNode = currentNode->next;
+        
+        if (tempNode->prev != NULL) {
+          tempNode->prev->next = tempNode->next;
+        } else {
+          carList = tempNode->next;
+        }
+        
+        if (tempNode->next != NULL) {
+          tempNode->next->prev = tempNode->prev;
+        }
+        delete(tempNode);
+        
       } else {
-        carList = tempNode->next;
+        float startR = tempCar.velocity*initialT+1/2*tempCar.acceleration*pow(initialT,2);
+        float startX = tempCar.xPosition+startR*cos(tempCar.heading);
+        float startY = tempCar.yPosition+startR*sin(tempCar.heading);
+        
+        float relAngle = currentData.heading - relativeAngle(currentData.xPosition, currentData.yPosition, startX, startY);
+        relAngle = abs(fmod((relAngle + PI),(2*PI)) - PI);
+        
+        float diffHeading = currentData.heading - tempCar.heading;
+        diffHeading = abs(fmod((diffHeading + PI),(2*PI)) - PI);
+        
+        if (relAngle < MAX_VALID_ANGLE && diffHeading < PI/2) {
+          calculateCarTrajectory(tempCar, tempX, tempY, tempU, dt, initialT);
+          float carRisk = calculateRisk(currentX, currentY, currentU, tempX, tempY, tempU, dt, tMax);
+          maxRisk = carRisk > maxRisk ? carRisk : maxRisk;
+        }
+        
+        currentNode = currentNode->next;
       }
-      
-      if (tempNode->next != NULL) {
-        tempNode->next->prev = tempNode->prev;
-      }
-      delete(tempNode);
-      
-    } else {
-      float startR = tempCar.velocity*initialT+1/2*tempCar.acceleration*pow(initialT,2);
-      float startX = tempCar.xPosition+startR*cos(tempCar.heading);
-      float startY = tempCar.yPosition+startR*sin(tempCar.heading);
-      
-      float relAngle = currentData.heading - relativeAngle(currentData.xPosition, currentData.yPosition, startX, startY);
-      relAngle = abs(fmod((relAngle + PI),(2*PI)) - PI);
-      
-      float diffHeading = currentData.heading - tempCar.heading;
-      diffHeading = abs(fmod((diffHeading + PI),(2*PI)) - PI);
-      
-      if (relAngle < MAX_VALID_ANGLE && diffHeading < PI/2) {
-        calculateCarTrajectory(tempCar, x1, y1, uncertainty1, dt, initialT);
-        float carRisk = calculateRisk(x0, y0, uncertainty0, x1, y1, uncertainty1, dt, tMax);
-        maxRisk = carRisk > maxRisk ? carRisk : maxRisk;
-      }
-      
-      currentNode = currentNode->next;
     }
+  
+    drawNewValue(GET_LCD_HEIGHT(maxRisk));
   }
 
-  drawNewValue(GET_LCD_HEIGHT(maxRisk));
+  yield();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -543,6 +552,7 @@ void setup() {
 #endif
 
   setupLCD();
+  Scheduler.startLoop(loopDataProcessing);
 
 }
 
