@@ -10,9 +10,20 @@
 #include "Adafruit_GFX.h"
 #include "Adafruit_HX8357.h"
 
-#define USE_OBD 1
+#define USE_OBD 0
 #define USE_GPS 1
 #define USE_LORA 1
+#define USE_LCD 0
+#define USE_DATA_PROC 1
+#define USE_USB 1
+
+#if USE_USB
+  #define PRINT(value) Serial.print(value);
+  #define PRINTLN(value) Serial.println(value);
+#else
+  #define PRINT(value) ;
+  #define PRINTLN(value) ;
+#endif
 
 #define GPSSerial Serial1
 #define OBDUART Serial2
@@ -86,6 +97,7 @@
 #define UNCERTAINTY 0.2
 #define RISK_SCALE 100.0
 #define DATA_PROC_TRANS_INT 200
+#define CAR_ID 13
 
 typedef struct {
   int id;
@@ -98,6 +110,30 @@ typedef struct {
   double yPosition; //m
   float heading; //radians
 } Car_t;
+
+Car_t dummyCar = {
+    CAR_ID,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  };
+
+  Car_t dummyCar2 = {
+    0,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1
+  };
 
 typedef struct CarNode {
   Car_t car;
@@ -127,22 +163,21 @@ void onReceive(int packetSize) {
 void setupLoRa() {
   LoRa.setPins(LORA_CS, LORA_RST, LORA_IRQ);
   if (!LoRa.begin(LORA_FREQ)) {             // initialize ratio at 915 MHz
-    Serial.println("LoRa init failed. Check your connections.");
+    PRINTLN("LoRa init failed. Check your connections.");
     while (true);                       // if failed, do nothing
   }
 
   LoRa.onReceive(onReceive);
   LoRa.receive();
-  Serial.println("LoRa init succeeded.");
+  PRINTLN("LoRa init succeeded.");
 }
 
 void addNewData(Car_t newData) {
   CarNode_t *currentNode = carList;
   if (currentNode == NULL) {
-    carList = new CarNode_t();
-    carList->car = newData;
-    carList->next = NULL;
-    carList->prev = NULL;
+    CarNode_t *newNode = new CarNode_t();
+    newNode->car = newData;
+    carList = newNode;
   } else if (currentNode->car.id == newData.id) {
     currentNode->car = newData;
   } else {
@@ -170,10 +205,14 @@ void loopLoRa() {
     packetsReceived--;
     newPacket = true;
     addNewData(receivedData);
+    PRINT("Received... ");
+    PRINTLN(receivedData.sequence);
   }
 
   // Transmit
   if ((millis() - LoRaLastTransmitTime) > LORA_TRANS_INT) {
+    PRINT("Sending... ");
+    PRINTLN(currentData.sequence);
     LoRa.beginPacket();
     LoRa.write((uint8_t*)&currentData, sizeof(currentData));
     LoRa.waitCAD();
@@ -237,28 +276,28 @@ void setupOBD() {
     pinPeripheral(10, PIO_SERCOM);
     pinPeripheral(11, PIO_SERCOM);
     byte version = obd.getVersion();
-    Serial.print("Freematics OBD-II Adapter ");
+    PRINT("Freematics OBD-II Adapter ");
     if (version > 0) {
-      Serial.println("detected");
-      Serial.print("OBD firmware version ");
-      Serial.print(version / 10);
-      Serial.print('.');
-      Serial.println(version % 10);
+      PRINTLN("detected");
+      PRINT("OBD firmware version ");
+      PRINT(version / 10);
+      PRINT('.');
+      PRINTLN(version % 10);
       break;
     } else {
-      Serial.println("not detected");
+      PRINTLN("not detected");
     }
   }
 
   do {
-    Serial.println("Connecting...");
+    PRINTLN("Connecting...");
   } while (!obd.init());
-  Serial.println("OBD connected!");
+  PRINTLN("OBD connected!");
 
   char buf[64];
   if (obd.getVIN(buf, sizeof(buf))) {
-    Serial.print("VIN:");
-    Serial.println(buf);
+    PRINT("VIN:");
+    PRINTLN(buf);
   }
 }
 
@@ -518,7 +557,7 @@ void loopDataProcessing() {
       }
     }
   
-    drawNewValue(GET_LCD_HEIGHT(maxRisk));
+//    drawNewValue(GET_LCD_HEIGHT(maxRisk));
   }
 
   yield();
@@ -529,45 +568,55 @@ void loopDataProcessing() {
 ////////////////////////////////////////////////////////////////////////////////
 void setup() {
   Serial.begin(115200);
+#if USE_USB
   while (!Serial);
+#endif
 
 #if USE_GPS
-  Serial.println("Initializing GPS");
+  PRINTLN("Initializing GPS");
   setupGPS();
   Scheduler.startLoop(loopGPS);
 #endif
 
 #if USE_OBD
-  Serial.println("Initializing OBDII");
+  PRINTLN("Initializing OBDII");
   setupOBD();
   Scheduler.startLoop(loopOBD);
 #endif
 
-  Serial.println("Initialization Complete");
+  PRINTLN("Initialization Complete");
 
 #if USE_LORA
-  Serial.println("Initializing LoRa");
+  PRINTLN("Initializing LoRa");
   setupLoRa();
   Scheduler.startLoop(loopLoRa);
 #endif
 
+#if USE_LCD
+  PRINTLN("Initializing LCD");
   setupLCD();
+#endif
+
+#if USE_DATA_PROC
+  PRINTLN("Start Data Proc. Loop");
   Scheduler.startLoop(loopDataProcessing);
+#endif
 
 }
 
 void loop() {
   if (newPacket) {
     newPacket = false;
-    Serial.println("Received Packet:");
-    Serial.print("  ID:    "); Serial.println(receivedData.id);
-    Serial.print("  Seq:   "); Serial.println(receivedData.sequence);
-    Serial.print("  Sec:   "); Serial.println(receivedData.seconds);
-    Serial.print("  uSec:  "); Serial.println(receivedData.microseconds);
-    Serial.print("  Accel: "); Serial.println(receivedData.acceleration);
-    Serial.print("  Speed: "); Serial.println(receivedData.velocity);
-    Serial.print("  Lat:   "); Serial.println(receivedData.yPosition);
-    Serial.print("  Long:  "); Serial.println(receivedData.xPosition);
-    Serial.print("  Hdg:   "); Serial.println(receivedData.heading);
+    PRINTLN("Received Packet:");
+    PRINT("  ID:    "); PRINTLN(receivedData.id);
+    PRINT("  Seq:   "); PRINTLN(receivedData.sequence);
+    PRINT("  Sec:   "); PRINTLN(receivedData.seconds);
+    PRINT("  uSec:  "); PRINTLN(receivedData.microseconds);
+    PRINT("  Accel: "); PRINTLN(receivedData.acceleration);
+    PRINT("  Speed: "); PRINTLN(receivedData.velocity);
+    PRINT("  Lat:   "); PRINTLN(receivedData.yPosition);
+    PRINT("  Long:  "); PRINTLN(receivedData.xPosition);
+    PRINT("  Hdg:   "); PRINTLN(receivedData.heading);
   }
+  yield();
 }
