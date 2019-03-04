@@ -571,8 +571,9 @@ void loopDataProcessing() {
         currentNode = currentNode->next;
       }
     }
-  
-//    drawNewValue(GET_LCD_HEIGHT(maxRisk));
+  #if USE_LCD
+    drawNewValue(GET_LCD_HEIGHT(maxRisk));
+   #endif
   }
 
   yield();
