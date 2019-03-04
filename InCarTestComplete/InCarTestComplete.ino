@@ -14,7 +14,7 @@
 #define USE_GPS 1
 #define USE_LORA 1
 #define USE_LCD 0
-#define USE_DATA_PROC 1
+#define USE_DATA_PROC 0
 #define USE_USB 1
 
 #if USE_USB
@@ -32,7 +32,7 @@
 #define LORA_RST 4
 #define LORA_IRQ 3
 #define LORA_FREQ 915E6
-#define LORA_TRANS_INT 100
+#define LORA_TRANS_INT 500
 
 //LCD
 //#define PLATFORM_ARDUINO_UNO
@@ -146,6 +146,8 @@ Car_t currentData;
 Car_t receivedData;
 CarNode_t *carList = NULL;
 
+bool addedDataEnded = true;
+
 ////////////////////////////////////////////////////////////////////////////////
 // LoRa
 ////////////////////////////////////////////////////////////////////////////////
@@ -173,21 +175,29 @@ void setupLoRa() {
 }
 
 void addNewData(Car_t newData) {
+  PRINTLN(newData.id)
   CarNode_t *currentNode = carList;
   if (currentNode == NULL) {
-    CarNode_t *newNode = new CarNode_t();
-    newNode->car = newData;
-    carList = newNode;
+    PRINTLN("EMPTY LIST")
+    carList = new CarNode_t();
+    PRINTLN(int(carList))
+    carList->car = newData;
+    carList->next = NULL;
+    carList->prev = NULL;
   } else if (currentNode->car.id == newData.id) {
+    PRINTLN("CAR IS IN FIRST POSITION")
     currentNode->car = newData;
   } else {
      while (currentNode->next != NULL) {
       currentNode = currentNode->next;
       if (currentNode->car.id == newData.id) {
+        PRINTLN("FOUND CAR")
         currentNode->car = newData;
         return;
       }
     }
+
+    PRINTLN("NEW CAR")
     
     CarNode_t *newNode = new CarNode_t();
     newNode->car = newData;
@@ -201,12 +211,17 @@ void addNewData(Car_t newData) {
 void loopLoRa() {
   // Receive
   if (packetsReceived > 0) {
-    LoRa.read((uint8_t*)&receivedData, sizeof(receivedData));
-    packetsReceived--;
-    newPacket = true;
-    addNewData(receivedData);
-    PRINT("Received... ");
-    PRINTLN(receivedData.sequence);
+    PRINT("Packets Recieved");
+    PRINTLN(packetsReceived)
+    if(LoRa.read((uint8_t*)&receivedData, sizeof(receivedData))==sizeof(receivedData)) {
+      packetsReceived--;
+      newPacket = true;
+      addNewData(receivedData);
+      PRINT("Received... ");
+      PRINTLN(receivedData.sequence);
+    } else {
+      PRINT("Incomplete Message!");
+    }
   }
 
   // Transmit
@@ -575,13 +590,13 @@ void setup() {
 #if USE_GPS
   PRINTLN("Initializing GPS");
   setupGPS();
-  Scheduler.startLoop(loopGPS);
+//  Scheduler.startLoop(loopGPS);
 #endif
 
 #if USE_OBD
   PRINTLN("Initializing OBDII");
   setupOBD();
-  Scheduler.startLoop(loopOBD);
+//  Scheduler.startLoop(loopOBD);
 #endif
 
   PRINTLN("Initialization Complete");
@@ -589,7 +604,7 @@ void setup() {
 #if USE_LORA
   PRINTLN("Initializing LoRa");
   setupLoRa();
-  Scheduler.startLoop(loopLoRa);
+//  Scheduler.startLoop(loopLoRa);
 #endif
 
 #if USE_LCD
@@ -599,7 +614,7 @@ void setup() {
 
 #if USE_DATA_PROC
   PRINTLN("Start Data Proc. Loop");
-  Scheduler.startLoop(loopDataProcessing);
+//  Scheduler.startLoop(loopDataProcessing);
 #endif
 
 }
@@ -619,4 +634,21 @@ void loop() {
     PRINT("  Hdg:   "); PRINTLN(receivedData.heading);
   }
   yield();
+
+#if USE_GPS
+  loopGPS();
+#endif
+
+#if USE_OBD
+  loopOBD();
+#endif
+
+#if USE_LORA
+  loopLoRa();
+#endif
+
+#if USE_DATA_PROC
+  loopDataProcessing();
+#endif
+  
 }

@@ -40,9 +40,13 @@ CarNode_t *carList = NULL;
 
 void setup() {
   Serial.begin(9600);
+
+  while (!Serial);
+  
   randomSeed(analogRead(0));
 
   carList = new CarNode_t();
+  Serial.println(int(carList));
   carList->car = randomCar(0);
   carList->next = NULL;
   carList->prev = NULL;
