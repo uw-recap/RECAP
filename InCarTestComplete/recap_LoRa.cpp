@@ -1,5 +1,7 @@
 #include "recap_LoRa.h"
 
+int packetsReceived;
+
 void onReceive(int packetSize) {
   if (packetSize != 0) {
     packetsReceived++;
@@ -12,6 +14,8 @@ int setupLoRa() {
     PRINTLN("LoRa init failed. Check your connections.");
     return -1;
   }
+
+  packetsReceived = 0;
 
   LoRa.setSPIFrequency(SPI_FREQ);
 
