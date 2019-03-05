@@ -24,19 +24,11 @@
 #define LCD_MAX_RISK 150
 #define LCD_RISK_HEIGHT (LCD_MAX_RISK - LCD_MIN_RISK)
 #define LCD_RISK_OFFSETY 150
-#define MED_RISK  (MAX_RISK / 2)
-#define HIGH_RISK (MAX_RISK / 2 + MAX_RISK / 4)
+#define MED_RISK  (LCD_MAX_RISK / 2)
+#define HIGH_RISK (LCD_MAX_RISK / 2 + LCD_MAX_RISK / 4)
 
-// LCD Specs
-#define LCD_MIN_HEIGHT 0
-#define LCD_MAX_HEIGHT 300    // the height of the graph
-#define LCD_WIDTH_LEFT 300    // the width of the left side of the screen (where the past data is shown)
-#define LCD_WIDTH_RIGHT 154   // the width of the right side of the screen (where the current data is shown)
-#define LCD_OFFSETX_LEFT 169  // where the left side of the graph starts
-#define LCD_OFFSETX_RIGHT 10  // where the right side of the graph starts
-#define LCD_OFFSETY 10        // where the grid ends and the actual graph starts
-#define LCD_NUM_SECTIONS 3    // how many sections the LCD screen should be split into
-#define GET_LCD_HEIGHT(value) map(value, MIN_RISK, MAX_RISK, LCD_MIN_HEIGHT, LCD_MAX_HEIGHT)
+// map between percentage risk and LCD risk
+#define GET_LCD_RISK(value) map(value, MIN_RISK, MAX_RISK, LCD_MIN_RISK, LCD_MAX_RISK)
 
 // SPI pinouts
 //#ifdef PLATFORM_ARDUINO_UNO
@@ -60,7 +52,7 @@
 #include "Adafruit_HX8357.h"
 
 // PUBLIC API
-// setup
+// draw the car and other static images
 void setupLCD();
 
 // draw a new risk value to the forward warning section of the LCD screen

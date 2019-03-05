@@ -11,23 +11,20 @@ int16_t currentDisplayedRisk;
 void drawRiskCircles(int16_t riskValue) {
   if (riskValue > LCD_MAX_RISK || riskValue < LCD_MIN_RISK) return;
   
-  // always draws the circles. Might be optimizable by 
-  // storing the previous state of the circles somewhere
-
-  // light up YELLOW light if risk > 50% max risk
-  if (riskValue > MED_RISK && currentDisplayedRisk < MED_RISK) {
+  // light up YELLOW light if risk is MEDIUM
+  if (riskValue > MED_RISK && currentDisplayedRisk <= MED_RISK) {
     // draw bright yellow circle
     tft.fillCircle(80, 90, 50, YELLOW);
-  } else if (riskValue < MED_RISK && currentDisplayedRisk > MED_RISK) {
+  } else if (riskValue < MED_RISK && currentDisplayedRisk >= MED_RISK) {
     // draw dull yellow circle
     tft.fillCircle(80, 90, 50, DARK_YELLOW);
   }
 
-  // light up RED light if risk > 75% max risk
-  if (riskValue > HIGH_RISK && currentDisplayedRisk < HIGH_RISK) {
+  // light up RED light if risk is HIGH
+  if (riskValue > HIGH_RISK && currentDisplayedRisk <= HIGH_RISK) {
     // draw bright red circle
     tft.fillCircle(80, 230, 50, RED);
-  } else if (riskValue < HIGH_RISK && currentDisplayedRisk > HIGH_RISK) {
+  } else if (riskValue < HIGH_RISK && currentDisplayedRisk >= HIGH_RISK) {
     // draw dull red circle
     tft.fillCircle(80, 230, 50, DARK_RED);
   }
@@ -120,7 +117,7 @@ void storeLineCoordinates(int16_t x0, int16_t y0, int16_t x1, int16_t y1,
 void drawStaticImages() {
   // vertical separator
   for (uint8_t i = 0; i < 5; i++) {
-    tft.drawFastVLine(LCD_OFFSETX_RIGHT + LCD_WIDTH_RIGHT + i, 0, 320, GRID_COLOR);
+    tft.drawFastVLine(164 + i, 0, 320, GRID_COLOR);
   }
   
   drawRiskCircles(LCD_MIN_RISK); // draw the red and yellow circles (not active)
@@ -138,44 +135,10 @@ void drawStaticImages() {
   drawBlindSpotWarningR(false);
 }
 
-// switches colors based on lcd value
-uint16_t pickColor(int16_t leftDistance) {
-  // this maps a value between 0-300 to a 16-bit color gradient.
+uint16_t pickColor(int16_t riskValue) {
+  // this maps a value between 0-150 to a 16-bit color gradient.
   // but only for red. don't ask.
-  return RED - (leftDistance / 30) * 0x1800 - (((leftDistance / 3) % 10) / 3) * 0x0800;
-
-  // well, since you asked...
-  // here's an color value (as in HSV value) table for solid red (i.e. H = 0 and S = 100)
-  // |   V | => | 16-bit |
-  // |-----|----|--------|
-  // | 100 | => | 0xF800 |
-  // |  99 | => | 0xF800 |
-  // |  98 | => | 0xF800 |
-
-  // subtract 0x0800...
-
-  // |  97 | => | 0xF000 |
-  // |  96 | => | 0xF000 |
-  // |  95 | => | 0xF000 |
-
-  // subtract 0x0800 again...
-
-  // |  94 | => | 0xE800 |
-  // |  93 | => | 0xE800 |
-  // |  92 | => | 0xE800 |
-  // |  91 | => | 0xE800 |
-
-  // subtract 0x0800 again...
-
-  // |  90 | => | 0xE000 |
-
-  // So for every 3 (or 4) steps of V, the 16-bit value changes by 0x1800
-
-  // |  80 | => | 0xC800 |
-  // |  70 | => | 0xB000 |
-  // | ... | => | ...    |
-  // |  10 | => | 0x1800 |
-  // |   0 | => | 0x0000 |
+  return 0x8000 + (riskValue / 20) * 0x1000;
 }
 
 /*********** PUBLIC API ***********/
@@ -197,8 +160,9 @@ void drawRiskValue(int16_t riskValue) {
   if (diff > 0) {
     for (int i = currentDisplayedRisk; i < riskValue; i++) {
       int displayIndex = LCD_RISK_HEIGHT - 1 - i;
+      uint16_t color = pickColor(i);
       tft.drawFastHLine(fwWarningRightBound[displayIndex][0] + 1, fwWarningRightBound[displayIndex][1] + 1, 
-      (fwWarningLeftBound[displayIndex][0] - fwWarningRightBound[displayIndex][0] - 1), RED);
+      (fwWarningLeftBound[displayIndex][0] - fwWarningRightBound[displayIndex][0] - 1), color);
     }
   } else {
     for(int i = currentDisplayedRisk; i > riskValue; i--) {
@@ -215,11 +179,35 @@ void drawRiskValue(int16_t riskValue) {
 void drawBlindSpotWarningL(bool active) {
   tft.drawLine(341, 109, 396, 101, active ? LIGHT_ORANGE : GRID_COLOR);
   tft.drawLine(341, 109, 391, 10, active ? LIGHT_ORANGE : GRID_COLOR);
-  // TODO: implement active signal
+
+  // exclamation mark
+  if (active) {
+    tft.drawFastVLine(391, 54, 36, LIGHT_ORANGE);
+    tft.drawFastVLine(390, 54, 36, LIGHT_ORANGE);
+    tft.drawFastVLine(391, 46, 3, LIGHT_ORANGE);
+    tft.drawFastVLine(390, 46, 3, LIGHT_ORANGE);
+  } else {
+    tft.drawFastVLine(391, 54, 36, BG_COLOR);
+    tft.drawFastVLine(390, 54, 36, BG_COLOR);
+    tft.drawFastVLine(391, 46, 3, BG_COLOR);
+    tft.drawFastVLine(390, 46, 3, BG_COLOR);
+  }
 }
 
 void drawBlindSpotWarningR(bool active) {
   tft.drawLine(299, 109, 244, 101, active ? LIGHT_ORANGE : GRID_COLOR);
   tft.drawLine(299, 109, 249, 10, active ? LIGHT_ORANGE : GRID_COLOR);  
-  // TODO: implement active signal
+  
+  // exclamation mark
+  if (active) {
+    tft.drawFastVLine(249, 54, 36, LIGHT_ORANGE);
+    tft.drawFastVLine(248, 54, 36, LIGHT_ORANGE);
+    tft.drawFastVLine(249, 46, 3, LIGHT_ORANGE);
+    tft.drawFastVLine(248, 46, 3, LIGHT_ORANGE);
+  } else {
+    tft.drawFastVLine(249, 54, 36, BG_COLOR);
+    tft.drawFastVLine(248, 54, 36, BG_COLOR);
+    tft.drawFastVLine(249, 46, 3, BG_COLOR);
+    tft.drawFastVLine(248, 46, 3, BG_COLOR);
+  }
 }

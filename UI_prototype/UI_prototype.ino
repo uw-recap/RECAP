@@ -22,23 +22,22 @@ void setup() {
 }
 
 void loop(void) {
-  for (int i = 0; i < 150; i++) {
+  // test blind spot warning
+  drawBlindSpotWarningL(true);
+  drawBlindSpotWarningR(true);
+  delay(2000);
+  drawBlindSpotWarningL(false);
+  drawBlindSpotWarningR(false);
+
+  // test forward warning
+  for (int i = LCD_MIN_RISK; i < LCD_MAX_RISK; i++) {
     drawRiskValue(i);
+    delay(10);
   }
+  delay(500);
   for (int i = LCD_MAX_RISK; i > LCD_MIN_RISK; i--) {
     drawRiskValue(i);
+    delay(10);
   }
   while(true);
-  // unsigned long start = micros();
-  // int16_t potInput = analogRead(BRAKE_INPUT);
-  //
-  // PRINT("Analog read: ");
-  // PRINTLN(potInput);
-  //
-  // int16_t risk = map(potInput, 0, 550, MIN_RISK, MAX_RISK);
-  // int16_t lcdValue = GET_LCD_HEIGHT(MAX_RISK - risk);
-  //
-//   drawNewValue(0);
-  // PRINT("Time to draw one value: ");
-  // PRINTLN(micros() - start);
 }
