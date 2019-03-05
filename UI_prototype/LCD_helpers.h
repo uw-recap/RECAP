@@ -29,13 +29,12 @@
 #define LCD_NUM_SECTIONS 3    // how many sections the LCD screen should be split into
 #define GET_LCD_HEIGHT(value) map(value, MIN_RISK, MAX_RISK, LCD_MIN_HEIGHT, LCD_MAX_HEIGHT)
 
-
 // SPI pinouts
-#ifdef PLATFORM_ARDUINO_UNO
-#define TFT_CS 10
-#define TFT_DC 9
-#define TFT_RST 8 // RST can be set to -1 if you tie it to Arduino's reset
-#endif
+//#ifdef PLATFORM_ARDUINO_UNO
+//#define TFT_CS 10
+//#define TFT_DC 9
+//#define TFT_RST 8 // RST can be set to -1 if you tie it to Arduino's reset
+//#endif
 #ifdef PLATFORM_FEATHER_M0
 #define TFT_CS 9
 #define TFT_DC 10
@@ -46,11 +45,7 @@
 #include "Adafruit_GFX.h"
 #include "Adafruit_HX8357.h"
 
-// GLOBALS
-extern Adafruit_HX8357 tft;
-extern uint8_t lcdHeightFifo[LCD_WIDTH_LEFT];
-extern uint8_t sectionHeight;
-
+void setupLCD();
 // draw a new risk value to the forward warning section of the LCD screen
 void drawNewValue(uint8_t newValue);
 void drawStaticImages();

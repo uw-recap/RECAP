@@ -1,5 +1,18 @@
 #include "LCD_helpers.h"
 
+// GLOBALS
+Adafruit_HX8357 tft = Adafruit_HX8357(TFT_CS, TFT_DC, TFT_RST);
+uint8_t lcdHeightFifo[LCD_WIDTH_LEFT];
+uint8_t sectionHeight = (LCD_MAX_HEIGHT - LCD_MIN_HEIGHT) / LCD_NUM_SECTIONS;
+
+void setupLCD() {
+  tft.begin(16E6);
+  tft.setRotation(3);
+  tft.fillScreen(BG_COLOR);
+  drawStaticImages();
+  delay(100);
+}
+
 // expects a value between LCD_HEIGHT_MIN and LCD_HEIGHT_MAX (defined in LCD_helpers.h)
 void drawNewValue(short newValue) {
   short oldValue = lcdHeightFifo[0];

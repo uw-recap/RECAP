@@ -12,22 +12,13 @@
 
 #include "LCD_helpers.h"
 
-// GLOBALS
-Adafruit_HX8357 tft = Adafruit_HX8357(TFT_CS, TFT_DC, TFT_RST);
-uint8_t lcdHeightFifo[LCD_WIDTH_LEFT];
-uint8_t sectionHeight = (LCD_MAX_HEIGHT - LCD_MIN_HEIGHT) / LCD_NUM_SECTIONS;
-
 void setup() {
   #ifdef PRINT_SERIAL
     Serial.begin(115200);
     while(!Serial); // wait until the Serial window has been opened
   #endif
 
-  tft.begin(HX8357D);
-  tft.setRotation(3);
-  tft.fillScreen(BG_COLOR);
-  drawStaticImages();
-  delay(100);
+  setupLCD();
 }
 
 void loop(void) {
