@@ -15,19 +15,19 @@ void drawRiskCircles(int16_t riskValue) {
   // storing the previous state of the circles somewhere
 
   // light up YELLOW light if risk > 50% max risk
-  if (riskValue > LCD_RISK_HEIGHT / 2) {
+  if (riskValue > MED_RISK && currentDisplayedRisk < MED_RISK) {
     // draw bright yellow circle
     tft.fillCircle(80, 90, 50, YELLOW);
-  } else {
+  } else if (riskValue < MED_RISK && currentDisplayedRisk > MED_RISK) {
     // draw dull yellow circle
     tft.fillCircle(80, 90, 50, DARK_YELLOW);
   }
 
   // light up RED light if risk > 75% max risk
-  if (riskValue > (LCD_RISK_HEIGHT / 2) + (LCD_RISK_HEIGHT / 4)) {
+  if (riskValue > HIGH_RISK && currentDisplayedRisk < HIGH_RISK) {
     // draw bright red circle
     tft.fillCircle(80, 230, 50, RED);
-  } else {
+  } else if (riskValue < HIGH_RISK && currentDisplayedRisk > HIGH_RISK) {
     // draw dull red circle
     tft.fillCircle(80, 230, 50, DARK_RED);
   }
@@ -183,6 +183,7 @@ void setupLCD() {
   tft.begin(16E6);
   tft.setRotation(3);
   tft.fillScreen(BG_COLOR);
+  currentDisplayedRisk = LCD_MAX_RISK;
   drawStaticImages();
   currentDisplayedRisk = LCD_MIN_RISK;
   delay(100);
@@ -195,14 +196,15 @@ void drawRiskValue(int16_t riskValue) {
   int16_t diff = riskValue - currentDisplayedRisk;
   if (diff > 0) {
     for (int i = currentDisplayedRisk; i < riskValue; i++) {
-      tft.drawFastHLine(fwWarningRightBound[i][0] + 1, fwWarningRightBound[i][1] + 1, 
-      (fwWarningLeftBound[i][0] - fwWarningRightBound[i][0] - 1), RED);
+      int displayIndex = LCD_RISK_HEIGHT - 1 - i;
+      tft.drawFastHLine(fwWarningRightBound[displayIndex][0] + 1, fwWarningRightBound[displayIndex][1] + 1, 
+      (fwWarningLeftBound[displayIndex][0] - fwWarningRightBound[displayIndex][0] - 1), RED);
     }
   } else {
-    
     for(int i = currentDisplayedRisk; i > riskValue; i--) {
-      tft.drawFastHLine(fwWarningRightBound[i][0] + 1, fwWarningRightBound[i][1] + 1, 
-      (fwWarningLeftBound[i][0] - fwWarningRightBound[i][0] - 1), BG_COLOR);
+      int displayIndex = LCD_RISK_HEIGHT - 1 - i;
+      tft.drawFastHLine(fwWarningRightBound[displayIndex][0] + 1, fwWarningRightBound[displayIndex][1] + 1, 
+      (fwWarningLeftBound[displayIndex][0] - fwWarningRightBound[displayIndex][0] - 1), BG_COLOR);
     }
   }  
   

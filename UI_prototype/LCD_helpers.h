@@ -9,8 +9,8 @@
 #define LIGHT_ORANGE 0xFCC0
 #define DARK_ORANGE 0xFBC0
 #define RED 0xF800
-#define DARK_RED 0xB000
-#define DARK_YELLOW 0xB580
+#define DARK_RED 0x7800
+#define DARK_YELLOW 0x7BE0
 
 #define BG_COLOR BLACK
 #define GRID_COLOR WHITE
@@ -24,6 +24,8 @@
 #define LCD_MAX_RISK 150
 #define LCD_RISK_HEIGHT (LCD_MAX_RISK - LCD_MIN_RISK)
 #define LCD_RISK_OFFSETY 150
+#define MED_RISK  (MAX_RISK / 2)
+#define HIGH_RISK (MAX_RISK / 2 + MAX_RISK / 4)
 
 // LCD Specs
 #define LCD_MIN_HEIGHT 0
