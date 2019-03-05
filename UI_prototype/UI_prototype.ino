@@ -1,4 +1,4 @@
-//#define PRINT_SERIAL
+#define PRINT_SERIAL
 #ifdef PRINT_SERIAL
   #define PRINT(value) Serial.print(value);
   #define PRINTLN(value) Serial.println(value);
@@ -22,14 +22,21 @@ void setup() {
 }
 
 void loop(void) {
+  for (int i = 0; i < 150; i++) {
+    drawRiskValue(i);
+  }
+  for (int i = LCD_MAX_RISK; i > LCD_MIN_RISK; i--) {
+    drawRiskValue(i);
+  }
+  while(true);
   // unsigned long start = micros();
-  // uint8_t potInput = analogRead(BRAKE_INPUT);
+  // int16_t potInput = analogRead(BRAKE_INPUT);
   //
   // PRINT("Analog read: ");
   // PRINTLN(potInput);
   //
-  // uint8_t risk = map(potInput, 0, 550, MIN_RISK, MAX_RISK);
-  // uint8_t lcdValue = GET_LCD_HEIGHT(MAX_RISK - risk);
+  // int16_t risk = map(potInput, 0, 550, MIN_RISK, MAX_RISK);
+  // int16_t lcdValue = GET_LCD_HEIGHT(MAX_RISK - risk);
   //
 //   drawNewValue(0);
   // PRINT("Time to draw one value: ");

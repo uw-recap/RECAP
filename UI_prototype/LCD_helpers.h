@@ -15,8 +15,15 @@
 #define BG_COLOR BLACK
 #define GRID_COLOR WHITE
 
+// risk percentage that we get from the data processing algorithm
 #define MIN_RISK 0
 #define MAX_RISK 100
+
+// risk values in px as shown on the LCD screen
+#define LCD_MIN_RISK 0
+#define LCD_MAX_RISK 150
+#define LCD_RISK_HEIGHT (LCD_MAX_RISK - LCD_MIN_RISK)
+#define LCD_RISK_OFFSETY 150
 
 // LCD Specs
 #define LCD_MIN_HEIGHT 0
@@ -41,16 +48,22 @@
 #define TFT_RST -1 // RST can be set to -1 if you tie it to Arduino's reset
 #endif
 
+// helper macro (originally from GFX library)
+#ifndef _swap_int16_t
+#define _swap_int16_t(a, b) { int16_t t = a; a = b; b = t; }
+#endif
+
 #include <SPI.h>
 #include "Adafruit_GFX.h"
 #include "Adafruit_HX8357.h"
 
+// PUBLIC API
+// setup
 void setupLCD();
+
 // draw a new risk value to the forward warning section of the LCD screen
-void drawNewValue(uint8_t newValue);
-void drawStaticImages();
-void drawCar();
+void drawRiskValue(int16_t riskValue);
+
+// draw the blind spot warning sections. active = if there is a car in the blind spot
 void drawBlindSpotWarningL(bool active);
 void drawBlindSpotWarningR(bool active);
-void drawRiskCircles(uint8_t maxRisk);
-uint16_t pickColor(uint8_t leftDistance);
