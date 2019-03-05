@@ -18,6 +18,8 @@
 #define LIGHT_ORANGE 0xFCC0
 #define DARK_ORANGE 0xFBC0
 #define RED 0xF800
+#define DARK_RED 0xB000
+#define DARK_YELLOW 0xB580
 
 #define BG_COLOR BLACK
 #define GRID_COLOR WHITE
@@ -69,14 +71,8 @@ void setup() {
   tft.begin(HX8357D);
   tft.setRotation(3);
   tft.fillScreen(BG_COLOR);
-  drawFullGrid(GRID_COLOR);
   drawStaticImages();
-  delay(500);
-
-  // init LCD values array
-  for (int i = 0; i < LCD_WIDTH_LEFT; i++) {
-    lcdHeightFifo[i] = 0;
-  }
+  delay(100);
 }
 
 void loop(void) {
@@ -131,71 +127,70 @@ void drawNewValue(short newValue) {
   }
 }
 
-void drawFullGrid(uint16_t gridColor) {
-// These are defined here because they're not relevant to the rest of the program
-#define LCD_GRID_START_X 8
-#define LCD_GRID_START_Y 8
-#define LCD_GRID_HEIGHT  303
-#define LCD_GRID_WIDTH   462
-#define LCD_GRID_BORDER  2
-
-  // bottom horizontal
-  for (short i = 0; i < LCD_GRID_BORDER; i++) {
-    tft.drawFastHLine(LCD_GRID_START_X, LCD_GRID_START_Y + i, LCD_GRID_WIDTH, gridColor);
-  }
-
-  // top horizontal
-  for (short i = 0; i < LCD_GRID_BORDER; i++) {
-    tft.drawFastHLine(LCD_GRID_START_X, LCD_GRID_START_Y + LCD_GRID_HEIGHT - i, LCD_GRID_WIDTH, gridColor);
-  }
-
-  // right vertical
-  for (short i = 0; i < LCD_GRID_BORDER; i++) {
-    tft.drawFastVLine(LCD_GRID_START_X + i, LCD_GRID_START_Y, LCD_GRID_HEIGHT, gridColor);
-  }
-
-  // left vertical
-  for (short i = 0; i < LCD_GRID_BORDER; i++) {
-    tft.drawFastVLine(LCD_GRID_START_X + LCD_GRID_WIDTH - i, LCD_GRID_START_Y, LCD_GRID_HEIGHT, gridColor);
-  }
-
-  for (short i = 0; i < 5; i++) {
-    // vertical separator
-    tft.drawFastVLine(LCD_OFFSETX_RIGHT + LCD_WIDTH_RIGHT + i, 10, 300, gridColor);
-  }
-}
-
 void drawStaticImages() {
-  // draw the red and yellow circles
-  tft.fillCircle(88, 230, 50, RED);
-  tft.fillCircle(88, 90, 50, YELLOW);
+  // vertical separator
+  for (short i = 0; i < 5; i++) {
+    tft.drawFastVLine(LCD_OFFSETX_RIGHT + LCD_WIDTH_RIGHT + i, 0, 320, GRID_COLOR);
+  }
+  
+  // draw the red and yellow circles (not active)
+  tft.fillCircle(80, 230, 50, DARK_RED);
+  tft.fillCircle(80, 90, 50, DARK_YELLOW);
 
-  // draw car
-  tft.drawLine(299, 59, 341, 59, GRID_COLOR);
-  tft.drawLine(299, 60, 341, 60, GRID_COLOR);  
-  tft.drawLine(299, 169, 341, 169, GRID_COLOR);
-  tft.drawLine(299, 170, 341, 170, GRID_COLOR);
-  tft.drawLine(299, 59, 299, 170, GRID_COLOR);
-  tft.drawLine(300, 59, 300, 170, GRID_COLOR);
-  tft.drawLine(340, 59, 340, 170, GRID_COLOR);
-  tft.drawLine(341, 59, 341, 170, GRID_COLOR);
-
-  // mirrors
-  tft.drawLine(341, 140, 346, 140, GRID_COLOR);
-  tft.drawLine(299, 140, 294, 140, GRID_COLOR);
-
+  drawCar();
+  
   // draw forward warning area
   tft.drawLine(299, 170, 279, 302, GRID_COLOR);
   tft.drawLine(341, 170, 361, 302, GRID_COLOR);
   tft.drawLine(279, 302, 361, 302, GRID_COLOR);
 
-  // draw left side warning
-  tft.drawLine(341, 139, 391, 131, GRID_COLOR);
-  tft.drawLine(341, 139, 391, 40, GRID_COLOR);
+  drawBlindSpotWarningL(false);
+  drawBlindSpotWarningR(false);
+}
 
-  // draw right side warning
-  tft.drawLine(299, 139, 249, 131, GRID_COLOR);
-  tft.drawLine(299, 139, 249, 40, GRID_COLOR);
+void drawCar() {
+  // bottom
+  tft.drawLine(299, 54, 341, 54, GRID_COLOR);
+  tft.drawLine(299, 55, 341, 55, GRID_COLOR);
+  // top
+  tft.drawLine(299, 169, 341, 169, GRID_COLOR);
+  tft.drawLine(299, 170, 341, 170, GRID_COLOR);
+  // left side
+  tft.drawLine(299, 54, 299, 170, GRID_COLOR);
+  tft.drawLine(300, 54, 300, 170, GRID_COLOR);
+  // right side
+  tft.drawLine(340, 54, 340, 170, GRID_COLOR);
+  tft.drawLine(341, 54, 341, 170, GRID_COLOR);
+  // front windshield
+  tft.drawLine(305, 145, 335, 145, GRID_COLOR);
+  tft.drawLine(335, 145, 332, 130, GRID_COLOR);
+  tft.drawLine(332, 130, 308, 130, GRID_COLOR);
+  tft.drawLine(308, 130, 305, 145, GRID_COLOR);
+  // roof
+  tft.drawLine(308, 128, 332, 128, GRID_COLOR);
+  tft.drawLine(332, 128, 332, 98, GRID_COLOR);
+  tft.drawLine(332, 98, 308, 98, GRID_COLOR);
+  tft.drawLine(308, 98, 308, 128, GRID_COLOR);
+  // rear windshield
+  tft.drawLine(308, 96, 332, 96, GRID_COLOR);
+  tft.drawLine(332, 96, 335, 81, GRID_COLOR);
+  tft.drawLine(335, 81, 305, 81, GRID_COLOR);
+  tft.drawLine(305, 81, 308, 96, GRID_COLOR);
+  // mirrors
+  tft.drawLine(341, 130, 346, 130, GRID_COLOR);
+  tft.drawLine(299, 130, 294, 130, GRID_COLOR);
+}
+
+void drawBlindSpotWarningL(bool active) {
+  tft.drawLine(341, 129, 396, 121, active ? LIGHT_ORANGE : GRID_COLOR);
+  tft.drawLine(341, 129, 391, 30, active ? LIGHT_ORANGE : GRID_COLOR);
+  // TODO: implement active signal
+}
+
+void drawBlindSpotWarningR(bool active) {
+  tft.drawLine(299, 129, 244, 121, active ? LIGHT_ORANGE : GRID_COLOR);
+  tft.drawLine(299, 129, 249, 30, active ? LIGHT_ORANGE : GRID_COLOR);  
+  // TODO: implement active signal
 }
 
 // switches colors based on lcd value
