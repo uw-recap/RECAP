@@ -206,4 +206,5 @@ void loop() {
     Serial.print("  Long:  "); Serial.println(receivedData.xPosition);
     Serial.print("  Hdg:   "); Serial.println(receivedData.heading);
   }
+  yield();
 }

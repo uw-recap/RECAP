@@ -1,6 +1,5 @@
 #include <Arduino.h>
 #include "wiring_private.h"
-#include <Scheduler.h>
 #include <Adafruit_GPS.h>
 #include <OBD2UART.h>
 #include <LoRa.h>
@@ -13,8 +12,8 @@
 #define USE_OBD 0
 #define USE_GPS 1
 #define USE_LORA 1
-#define USE_LCD 0
-#define USE_DATA_PROC 0
+#define USE_LCD 1
+#define USE_DATA_PROC 1
 #define USE_USB 1
 
 #if USE_USB
@@ -56,8 +55,8 @@
 #define BRAKE_INPUT A0
 
 // LCD Specs
-#define LCD_MIN_HEIGHT 0      
-#define LCD_MAX_HEIGHT 300    // the height of the graph 
+#define LCD_MIN_HEIGHT 0
+#define LCD_MAX_HEIGHT 300    // the height of the graph
 #define LCD_WIDTH_LEFT 300    // the width of the left side of the screen (where the past data is shown)
 #define LCD_WIDTH_RIGHT 154   // the width of the right side of the screen (where the current data is shown)
 #define LCD_OFFSETX_LEFT 169  // where the left side of the graph starts
@@ -135,6 +134,16 @@ Car_t dummyCar = {
     1
   };
 
+void printCar(Car_t car) {
+  PRINT("Car ID: "); PRINTLN(car.id);
+  PRINT("Sequence: "); PRINTLN(car.sequence);
+  PRINT("Time: "); PRINTLN((float) car.seconds + ((float) car.microseconds) / 1000000 );
+  PRINT("Accel: "); PRINTLN(car.acceleration);
+  PRINT("Vel: "); PRINTLN(car.velocity);
+  PRINT("(X,Y): ("); PRINT(car.xPosition); PRINT(", "); PRINT(car.yPosition); PRINTLN(")");
+  PRINT("Heading: "); PRINTLN(car.heading);
+}
+
 typedef struct CarNode {
   Car_t car;
   struct CarNode *next;
@@ -145,8 +154,18 @@ typedef struct CarNode {
 Car_t currentData;
 Car_t receivedData;
 CarNode_t *carList = NULL;
-
 bool addedDataEnded = true;
+
+void printCarList() {
+  int count = 0;
+  CarNode_t* currentNode = carList;
+  while(currentNode != NULL) {
+    printCar(currentNode->car);
+    count++;
+    PRINT("Count = ");
+    PRINTLN(count);
+  }
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // LoRa
@@ -168,6 +187,7 @@ void setupLoRa() {
     PRINTLN("LoRa init failed. Check your connections.");
     while (true);                       // if failed, do nothing
   }
+  LoRa.setSPIFrequency(16E6);
 
   LoRa.onReceive(onReceive);
   LoRa.receive();
@@ -180,7 +200,6 @@ void addNewData(Car_t newData) {
   if (currentNode == NULL) {
     PRINTLN("EMPTY LIST")
     carList = new CarNode_t();
-    PRINTLN(int(carList))
     carList->car = newData;
     carList->next = NULL;
     carList->prev = NULL;
@@ -198,7 +217,7 @@ void addNewData(Car_t newData) {
     }
 
     PRINTLN("NEW CAR")
-    
+
     CarNode_t *newNode = new CarNode_t();
     newNode->car = newData;
     newNode->prev = currentNode;
@@ -211,16 +230,16 @@ void addNewData(Car_t newData) {
 void loopLoRa() {
   // Receive
   if (packetsReceived > 0) {
-    PRINT("Packets Recieved");
-    PRINTLN(packetsReceived)
-    if(LoRa.read((uint8_t*)&receivedData, sizeof(receivedData))==sizeof(receivedData)) {
+    PRINT("Packets Received: ");
+    PRINTLN(packetsReceived);
+    if(LoRa.read((uint8_t*)&receivedData, sizeof(receivedData)) == sizeof(receivedData)) {
       packetsReceived--;
       newPacket = true;
       addNewData(receivedData);
       PRINT("Received... ");
       PRINTLN(receivedData.sequence);
     } else {
-      PRINT("Incomplete Message!");
+      PRINTLN("Incomplete Message!");
     }
   }
 
@@ -235,8 +254,6 @@ void loopLoRa() {
     currentData.sequence++;
     LoRa.receive(); // Return to receive mode
   }
-
-  yield();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -262,12 +279,11 @@ void loopGPS() {
 
     double latRad = GPS.latitude * PI/180;
     double lonRad = GPS.longitude * PI/180;
-    
+
     currentData.xPosition = WORLD_RADIUS*lonRad*cos(latRad);
     currentData.yPosition = WORLD_RADIUS*latRad;
     currentData.heading = abs(fmod((GPS.angle/180.0 + 0.5)*PI,(2*PI)) - PI);
   }
-  yield();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -335,11 +351,11 @@ short lcdHeightFifo[LCD_WIDTH_LEFT];
 //short sectionHeight = (LCD_MAX_HEIGHT - LCD_MIN_HEIGHT) / LCD_NUM_SECTIONS;
 
 void setupLCD() {
-  tft.begin(HX8357D);
+  tft.begin(16E6);
   tft.setRotation(3);
   tft.fillScreen(BG_COLOR);
   drawFullGrid(GRID_COLOR);
-  delay(500);
+//  delay(500);
 
   // init LCD values array
   for (int i = 0; i < LCD_WIDTH_LEFT; i++) {
@@ -363,7 +379,7 @@ void drawNewValue(short newValue) {
     for (i = 0; i > diff; i--) {
       tft.drawFastHLine(LCD_OFFSETX_RIGHT, LCD_OFFSETY + oldValue + i, LCD_WIDTH_RIGHT, BG_COLOR);
     }
-  }   
+  }
 
   // draw the section on the left while shifting all elements in the FIFO one down
   for (short j = LCD_WIDTH_LEFT - 1; j >= 0; j--) {
@@ -373,18 +389,18 @@ void drawNewValue(short newValue) {
     // otherwise, we're just shifting the FIFO values down one
     short currentValue = (j == 0) ? newValue : lcdHeightFifo[j-1];
     diff = currentValue - oldValue; // if diff > 0, draw in color, starting from old_val. if diff < 0, draw in black, starting from old_val + diff
-    
+
     lcdHeightFifo[j] = currentValue;
     if (diff > 0) {
       color = pickColor(j);
-      tft.drawFastVLine(LCD_OFFSETX_LEFT + j, LCD_OFFSETY + oldValue, diff, color);  
+      tft.drawFastVLine(LCD_OFFSETX_LEFT + j, LCD_OFFSETY + oldValue, diff, color);
     } else {
-      tft.drawFastVLine(LCD_OFFSETX_LEFT + j, LCD_OFFSETY + oldValue + diff, -diff, BG_COLOR);  
-    }      
+      tft.drawFastVLine(LCD_OFFSETX_LEFT + j, LCD_OFFSETY + oldValue + diff, -diff, BG_COLOR);
+    }
   }
 }
 
-void drawFullGrid(uint16_t gridColor) {  
+void drawFullGrid(uint16_t gridColor) {
   // bottom horizontal
   for (short i = 0; i < LCD_GRID_BORDER; i++) {
     tft.drawFastHLine(LCD_GRID_START_X, LCD_GRID_START_Y + i, LCD_GRID_WIDTH, gridColor);
@@ -404,7 +420,7 @@ void drawFullGrid(uint16_t gridColor) {
   for (short i = 0; i < LCD_GRID_BORDER; i++) {
     tft.drawFastVLine(LCD_GRID_START_X + LCD_GRID_WIDTH - i, LCD_GRID_START_Y, LCD_GRID_HEIGHT, gridColor);
   }
-   
+
   for (short i = 0; i < 5; i++) {
     // vertical separator
     tft.drawFastVLine(LCD_OFFSETX_RIGHT + LCD_WIDTH_RIGHT + i, 10, 300, gridColor);
@@ -413,7 +429,7 @@ void drawFullGrid(uint16_t gridColor) {
 
 // switches colors based on lcd value
 uint16_t pickColor(short leftDistance) {
-  // this maps a value between 0-300 to a 16-bit color gradient. 
+  // this maps a value between 0-300 to a 16-bit color gradient.
   // but only for red. don't ask.
   return RED - (leftDistance / 30) * 0x1800 - (((leftDistance / 3) % 10) / 3) * 0x0800;
 
@@ -425,25 +441,25 @@ uint16_t pickColor(short leftDistance) {
   // |  99 | => | 0xF800 |
   // |  98 | => | 0xF800 |
 
-  // subtract 0x0800... 
-  
+  // subtract 0x0800...
+
   // |  97 | => | 0xF000 |
   // |  96 | => | 0xF000 |
   // |  95 | => | 0xF000 |
 
   // subtract 0x0800 again...
-  
+
   // |  94 | => | 0xE800 |
   // |  93 | => | 0xE800 |
   // |  92 | => | 0xE800 |
   // |  91 | => | 0xE800 |
 
   // subtract 0x0800 again...
-  
+
   // |  90 | => | 0xE000 |
 
   // So for every 3 (or 4) steps of V, the 16-bit value changes by 0x1800
-  
+
   // |  80 | => | 0xC800 |
   // |  70 | => | 0xB000 |
   // | ... | => | ...    |
@@ -458,7 +474,7 @@ int lastDataProcessingTime = 0;
 double currentX[TIMESTEPS+1];
 double currentY[TIMESTEPS+1];
 float currentU[TIMESTEPS+1];
-  
+
 double tempX[TIMESTEPS+1];
 double tempY[TIMESTEPS+1];
 float tempU[TIMESTEPS+1];
@@ -475,14 +491,14 @@ void calculateCarTrajectory(Car_t c, double x[], double y[], float u[], float dt
   float r[TIMESTEPS+1];
   float xHeading = cos(c.heading);
   float yHeading = sin(c.heading);
-  
+
   r[0] = c.velocity*initialT+1/2*c.acceleration*pow(initialT,2);
   x[0] = c.xPosition + r[0]*xHeading;
   y[0] = c.yPosition + r[0]*yHeading;
   u[0] = r[0]*UNCERTAINTY;
-  
+
   bool carStopped = false;
-  
+
   for (int i=1;i<=TIMESTEPS;i++) {
     if (!carStopped) {
       float t = initialT+i*dt;
@@ -517,66 +533,64 @@ float calculateRisk(double x0[], double y0[], float u0[], double x1[], double y1
       maxRisk = risk > maxRisk ? risk : maxRisk;
     }
   }
-  
+
   return maxRisk;
 }
 
 void loopDataProcessing() {
   if ((millis() - lastDataProcessingTime) > DATA_PROC_TRANS_INT) {
     lastDataProcessingTime = millis();
-    
+
     float tMax = currentData.velocity/BRAKING_ACCELERATION + REACTION_TIME;
     float dt = tMax/TIMESTEPS;
-  
+
     calculateCarTrajectory(currentData, currentX, currentY, currentU, dt, 0);
-    
+
     float maxRisk = 0.0;
     CarNode_t *currentNode = carList;
-    
+
     while (currentNode != NULL) {
       Car_t tempCar = currentNode->car;
       float initialT = (currentData.seconds-tempCar.seconds)+(currentData.microseconds-tempCar.microseconds)/1000000.0;
       if (initialT > MAX_VALID_TIME) {
         CarNode_t *tempNode = currentNode;
         currentNode = currentNode->next;
-        
+
         if (tempNode->prev != NULL) {
           tempNode->prev->next = tempNode->next;
         } else {
           carList = tempNode->next;
         }
-        
+
         if (tempNode->next != NULL) {
           tempNode->next->prev = tempNode->prev;
         }
         delete(tempNode);
-        
+
       } else {
         float startR = tempCar.velocity*initialT+1/2*tempCar.acceleration*pow(initialT,2);
         float startX = tempCar.xPosition+startR*cos(tempCar.heading);
         float startY = tempCar.yPosition+startR*sin(tempCar.heading);
-        
+
         float relAngle = currentData.heading - relativeAngle(currentData.xPosition, currentData.yPosition, startX, startY);
         relAngle = abs(fmod((relAngle + PI),(2*PI)) - PI);
-        
+
         float diffHeading = currentData.heading - tempCar.heading;
         diffHeading = abs(fmod((diffHeading + PI),(2*PI)) - PI);
-        
+
         if (relAngle < MAX_VALID_ANGLE && diffHeading < PI/2) {
           calculateCarTrajectory(tempCar, tempX, tempY, tempU, dt, initialT);
           float carRisk = calculateRisk(currentX, currentY, currentU, tempX, tempY, tempU, dt, tMax);
           maxRisk = carRisk > maxRisk ? carRisk : maxRisk;
         }
-        
+
         currentNode = currentNode->next;
       }
     }
   #if USE_LCD
-    drawNewValue(GET_LCD_HEIGHT(maxRisk));
+    drawNewValue(GET_LCD_HEIGHT(random(100)));
    #endif
   }
-
-  yield();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -602,15 +616,17 @@ void setup() {
 
   PRINTLN("Initialization Complete");
 
-#if USE_LORA
-  PRINTLN("Initializing LoRa");
-  setupLoRa();
-//  Scheduler.startLoop(loopLoRa);
-#endif
 
 #if USE_LCD
   PRINTLN("Initializing LCD");
   setupLCD();
+#endif
+
+
+#if USE_LORA
+  PRINTLN("Initializing LoRa");
+  setupLoRa();
+//  Scheduler.startLoop(loopLoRa);
 #endif
 
 #if USE_DATA_PROC
@@ -634,7 +650,6 @@ void loop() {
     PRINT("  Long:  "); PRINTLN(receivedData.xPosition);
     PRINT("  Hdg:   "); PRINTLN(receivedData.heading);
   }
-  yield();
 
 #if USE_GPS
   loopGPS();
@@ -651,5 +666,5 @@ void loop() {
 #if USE_DATA_PROC
   loopDataProcessing();
 #endif
-  
+
 }
