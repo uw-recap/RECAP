@@ -101,8 +101,8 @@
 typedef struct {
   int id;
   int sequence;
-  int microseconds; // usec
-  int seconds; //sec
+  long microseconds; // usec
+  long seconds; //sec
   float acceleration; // m/s^2
   float velocity; //m/s
   double xPosition; //m
@@ -290,10 +290,10 @@ void loopGPS() {
 // OBD II
 ////////////////////////////////////////////////////////////////////////////////
 // Serial1 uses Pins 0/1 for RX/TX
-// Serial2 uses Pins 11/10 for RX/TX
-Uart Serial2 (&sercom1, 11, 10, SERCOM_RX_PAD_0, UART_TX_PAD_2);
+// Serial2 uses Pins 21/20 for RX/TX
+Uart Serial2 (&sercom3, 21, 20, SERCOM_RX_PAD_1, UART_TX_PAD_0);
 
-void SERCOM1_Handler()
+void SERCOM3_Handler()
 {
   Serial2.IrqHandler();
 }
@@ -304,8 +304,8 @@ void setupOBD() {
   while (true) {
     delay(1000);
     obd.begin();
-    pinPeripheral(10, PIO_SERCOM);
-    pinPeripheral(11, PIO_SERCOM);
+    pinPeripheral(20, PIO_SERCOM);
+    pinPeripheral(21, PIO_SERCOM);
     byte version = obd.getVersion();
     PRINT("Freematics OBD-II Adapter ");
     if (version > 0) {
