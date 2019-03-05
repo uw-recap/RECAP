@@ -1,3 +1,6 @@
+#ifndef _RECAP_LCD_H_
+#define _RECAP_LCD_H_
+
 // Colors
 #define BLACK 0x0000
 #define WHITE 0xFFFF
@@ -51,3 +54,4 @@ void drawRiskValue(int16_t riskValue);
 // draw the blind spot warning sections. active = if there is a car in the blind spot
 void drawBlindSpotWarningL(bool active);
 void drawBlindSpotWarningR(bool active);
+#endif

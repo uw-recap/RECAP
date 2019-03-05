@@ -1,0 +1,16 @@
+#ifndef _RECAP_DATA_PROC_H_
+#define _RECAP_DATA_PROC_H_
+
+#define VARIANCE 10.0
+#define MAX_VALID_TIME 2.0
+#define MAX_VALID_DIST 10.0
+#define MAX_VALID_ANGLE PI/6
+#define BRAKING_ACCELERATION 3.4
+#define REACTION_TIME 0.15
+#define TIMESTEPS 100
+#define UNCERTAINTY 0.2
+#define RISK_SCALE 100.0
+#define DATA_PROC_TRANS_INT 200
+#define CAR_ID 13
+
+#endif

@@ -497,6 +497,8 @@ void loop() {
     newData = true;
   }
 
+  tft;
+
   #if USE_DATA_PROC
   if(newData){
     loopDataProcessing();

@@ -1,4 +1,4 @@
-#include "LCD_helpers.h"
+#include "recap_LCD.h"
 
 /*********** GLOBALS ***********/
 Adafruit_HX8357 tft = Adafruit_HX8357(TFT_CS, TFT_DC, TFT_RST);
