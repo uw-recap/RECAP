@@ -3,7 +3,6 @@
 #include <Adafruit_GPS.h>
 #include <OBD2UART.h>
 #include <LoRa.h>
-#include <TimeLib.h>
 
 #include <SPI.h>
 #include "Adafruit_GFX.h"
@@ -12,7 +11,7 @@
 #define USE_OBD 0
 #define USE_GPS 1
 #define USE_LORA 1
-#define USE_LCD 1
+#define USE_LCD 0
 #define USE_DATA_PROC 1
 #define USE_USB 1
 
@@ -31,7 +30,7 @@
 #define LORA_RST 4
 #define LORA_IRQ 3
 #define LORA_FREQ 915E6
-#define LORA_TRANS_INT 500
+#define LORA_TRANS_INT 100
 
 //LCD
 //#define PLATFORM_ARDUINO_UNO
@@ -110,30 +109,6 @@ typedef struct {
   float heading; //radians
 } Car_t;
 
-Car_t dummyCar = {
-    CAR_ID,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-  };
-
-  Car_t dummyCar2 = {
-    0,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1
-  };
-
 void printCar(Car_t car) {
   PRINT("Car ID: "); PRINTLN(car.id);
   PRINT("Sequence: "); PRINTLN(car.sequence);
@@ -195,28 +170,22 @@ void setupLoRa() {
 }
 
 void addNewData(Car_t newData) {
-  PRINTLN(newData.id)
   CarNode_t *currentNode = carList;
   if (currentNode == NULL) {
-    PRINTLN("EMPTY LIST")
     carList = new CarNode_t();
     carList->car = newData;
     carList->next = NULL;
     carList->prev = NULL;
   } else if (currentNode->car.id == newData.id) {
-    PRINTLN("CAR IS IN FIRST POSITION")
     currentNode->car = newData;
   } else {
      while (currentNode->next != NULL) {
       currentNode = currentNode->next;
       if (currentNode->car.id == newData.id) {
-        PRINTLN("FOUND CAR")
         currentNode->car = newData;
         return;
       }
     }
-
-    PRINTLN("NEW CAR")
 
     CarNode_t *newNode = new CarNode_t();
     newNode->car = newData;
@@ -227,23 +196,7 @@ void addNewData(Car_t newData) {
   }
 }
 
-void loopLoRa() {
-  // Receive
-  if (packetsReceived > 0) {
-    PRINT("Packets Received: ");
-    PRINTLN(packetsReceived);
-    if(LoRa.read((uint8_t*)&receivedData, sizeof(receivedData)) == sizeof(receivedData)) {
-      packetsReceived--;
-      newPacket = true;
-      addNewData(receivedData);
-      PRINT("Received... ");
-      PRINTLN(receivedData.sequence);
-    } else {
-      PRINTLN("Incomplete Message!");
-    }
-  }
-
-  // Transmit
+void LoRaTx() {
   if ((millis() - LoRaLastTransmitTime) > LORA_TRANS_INT) {
     PRINT("Sending... ");
     PRINTLN(currentData.sequence);
@@ -256,34 +209,97 @@ void loopLoRa() {
   }
 }
 
+bool LoRaRx() {
+  if (packetsReceived > 0) {
+    PRINT("Packets Received: ");
+    PRINTLN(packetsReceived);
+    if(LoRa.read((uint8_t*)&receivedData, sizeof(receivedData)) == sizeof(receivedData)) {
+      packetsReceived--;
+      newPacket = true;
+      addNewData(receivedData);
+      PRINT("Received... ");
+      PRINTLN(receivedData.sequence);
+      return true;
+    } else {
+      PRINTLN("Incomplete Message!");
+    }
+  }
+  return false;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // GPS
 ////////////////////////////////////////////////////////////////////////////////
 Adafruit_GPS GPS(&GPSSerial);
 
+bool isLeapYear(int yr) {
+  if (yr % 4 == 0 && yr % 100 != 0 || yr % 400 == 0) return true;
+  else return false;
+}
+
+
+byte daysInMonth(int yr,int m) {
+  byte days[12]={31,28,31,30,31,30,31,31,30,31,30,31};
+  if (m==2 && isLeapYear(yr)) { 
+    return 29;
+  }
+  else {
+    return days[m-1];
+  }
+}
+
+long epochTime(int years, int months, int days, int hours, int minutes, int seconds) {
+  long epoch=0;
+  if (years < 2000) {
+    years += 2000;
+  }
+  
+  for (int yr=1970;yr<years;yr++) {
+    if (isLeapYear(yr)) {
+      epoch+=366*86400L;
+    } else {
+      epoch+=365*86400L;
+    }
+  }
+  
+  for(int m=1;m<months;m++) {
+    epoch+=daysInMonth(years,m)*86400L;
+  }
+  
+  epoch += (days-1)*86400L;
+  epoch += hours*3600L;
+  epoch += minutes*60;
+  epoch += seconds;
+
+  return epoch;
+}
+
 void setupGPS() {
   GPS.begin(9600);
   GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA);
-  GPS.sendCommand(PMTK_SET_NMEA_UPDATE_1HZ);
+  GPS.sendCommand(PMTK_SET_NMEA_UPDATE_5HZ);
+  GPS.sendCommand(PMTK_API_SET_FIX_CTL_5HZ);
   delay(1000);
   GPSSerial.println(PMTK_Q_RELEASE);
 }
 
-void loopGPS() {
+bool updateGPS() {
   char c = GPS.read();
   if (GPS.newNMEAreceived()) {
     GPS.parse(GPS.lastNMEA());
-    setTime(GPS.hour, GPS.minute, GPS.seconds, GPS.day, GPS.month, GPS.year);
-    currentData.seconds = now();
-    currentData.microseconds = micros();
+    currentData.seconds = epochTime(GPS.year, GPS.month, GPS.day, GPS.hour, GPS.minute, GPS.seconds);
+    currentData.microseconds = GPS.milliseconds*1000;
 
-    double latRad = GPS.latitude * PI/180;
-    double lonRad = GPS.longitude * PI/180;
+    double latRad = (floor(GPS.latitude/100) + fmod(GPS.latitude, 100)/60.0) * PI/180;
+    double lonRad = -(floor(GPS.longitude/100) + fmod(GPS.longitude, 100)/60.0) * PI/180;
 
     currentData.xPosition = WORLD_RADIUS*lonRad*cos(latRad);
     currentData.yPosition = WORLD_RADIUS*latRad;
     currentData.heading = abs(fmod((GPS.angle/180.0 + 0.5)*PI,(2*PI)) - PI);
+    
+    return true;
   }
+  return false;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -335,12 +351,11 @@ void setupOBD() {
 int obdSpeed;
 int lastOBDTime;
 
-void loopOBD() {
+void updateOBD() {
   obd.readPID(PID_SPEED, obdSpeed);
-  currentData.acceleration = (currentData.velocity - (obdSpeed / 3.6)) / ((millis() - lastOBDTime) / 1000);
+  currentData.acceleration = 1000 * ((obdSpeed / 3.6) - currentData.velocity) / (millis() - lastOBDTime);
   lastOBDTime = millis();
   currentData.velocity = obdSpeed / 3.6;
-  delay(100);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -596,6 +611,8 @@ void loopDataProcessing() {
 ////////////////////////////////////////////////////////////////////////////////
 // Main
 ////////////////////////////////////////////////////////////////////////////////
+bool ledON = false;
+
 void setup() {
   Serial.begin(115200);
 #if USE_USB
@@ -605,13 +622,11 @@ void setup() {
 #if USE_GPS
   PRINTLN("Initializing GPS");
   setupGPS();
-//  Scheduler.startLoop(loopGPS);
 #endif
 
 #if USE_OBD
   PRINTLN("Initializing OBDII");
   setupOBD();
-//  Scheduler.startLoop(loopOBD);
 #endif
 
   PRINTLN("Initialization Complete");
@@ -626,45 +641,43 @@ void setup() {
 #if USE_LORA
   PRINTLN("Initializing LoRa");
   setupLoRa();
-//  Scheduler.startLoop(loopLoRa);
 #endif
 
-#if USE_DATA_PROC
-  PRINTLN("Start Data Proc. Loop");
-//  Scheduler.startLoop(loopDataProcessing);
-#endif
+currentData.id = CAR_ID;
 
 }
 
 void loop() {
-  if (newPacket) {
-    newPacket = false;
-    PRINTLN("Received Packet:");
-    PRINT("  ID:    "); PRINTLN(receivedData.id);
-    PRINT("  Seq:   "); PRINTLN(receivedData.sequence);
-    PRINT("  Sec:   "); PRINTLN(receivedData.seconds);
-    PRINT("  uSec:  "); PRINTLN(receivedData.microseconds);
-    PRINT("  Accel: "); PRINTLN(receivedData.acceleration);
-    PRINT("  Speed: "); PRINTLN(receivedData.velocity);
-    PRINT("  Lat:   "); PRINTLN(receivedData.yPosition);
-    PRINT("  Long:  "); PRINTLN(receivedData.xPosition);
-    PRINT("  Hdg:   "); PRINTLN(receivedData.heading);
+  bool newData = false;
+  if(LoRaRx()) {
+    newData = true;
+  }
+  
+  if(updateGPS()) {
+    PRINT("x: ");
+    PRINT(currentData.xPosition);
+    PRINT(" y: ");
+    PRINT(currentData.yPosition);
+    PRINT(" h: ");
+    PRINTLN(currentData.heading);
+    
+    digitalWrite(13, ledON);
+    ledON = !ledON;
+    #if USE_OBD
+    updateOBD();
+    PRINT("Speed: ");
+    PRINT(currentData.velocity);
+    PRINT(" Accel: ");
+    PRINTLN(currentData.acceleration);
+    #endif
+    
+    LoRaTx();
+    newData = true;
   }
 
-#if USE_GPS
-  loopGPS();
-#endif
-
-#if USE_OBD
-  loopOBD();
-#endif
-
-#if USE_LORA
-  loopLoRa();
-#endif
-
-#if USE_DATA_PROC
-  loopDataProcessing();
-#endif
-
+  #if USE_DATA_PROC
+  if(newData){
+    loopDataProcessing();
+  }
+  #endif
 }
