@@ -31,7 +31,7 @@ int transmitLoRa(Car_t* car)
   LoRa.write((uint8_t*)car, sizeof(Car_t));
   LoRa.waitCAD();
  
-  car->sqeuence++;
+  car->sequence++;
 
   return 0;
 }

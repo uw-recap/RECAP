@@ -1,5 +1,48 @@
 #include "recap_GPS.h"
 
+// Epoch Time Helpers
+bool isLeapYear(int yr) {
+  if (yr % 4 == 0 && yr % 100 != 0 || yr % 400 == 0) return true;
+  else return false;
+}
+
+
+byte daysInMonth(int yr,int m) {
+  byte days[12]={31,28,31,30,31,30,31,31,30,31,30,31};
+  if (m==2 && isLeapYear(yr)) { 
+    return 29;
+  }
+  else {
+    return days[m-1];
+  }
+}
+
+long epochTime(int years, int months, int days, int hours, int minutes, int seconds) {
+  long epoch=0;
+  if (years < 2000) {
+    years += 2000;
+  }
+  
+  for (int yr=1970;yr<years;yr++) {
+    if (isLeapYear(yr)) {
+      epoch+=366*86400L;
+    } else {
+      epoch+=365*86400L;
+    }
+  }
+  
+  for(int m=1;m<months;m++) {
+    epoch+=daysInMonth(years,m)*86400L;
+  }
+  
+  epoch += (days-1)*86400L;
+  epoch += hours*3600L;
+  epoch += minutes*60;
+  epoch += seconds;
+
+  return epoch;
+}
+
 Adafruit_GPS GPS(&GPSSerial);
 
 int setupGPS() {
