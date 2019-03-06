@@ -1,3 +1,6 @@
+#ifndef _RECAP_LCD_H_
+#define _RECAP_LCD_H_
+
 // Colors
 #define BLACK 0x0000
 #define WHITE 0xFFFF
@@ -21,8 +24,8 @@
 #define LCD_MAX_RISK 150
 #define LCD_RISK_HEIGHT (LCD_MAX_RISK - LCD_MIN_RISK)
 #define LCD_RISK_OFFSETY 150
-#define MED_RISK  (LCD_MAX_RISK / 2)
-#define HIGH_RISK (LCD_MAX_RISK / 2 + LCD_MAX_RISK / 4)
+#define MED_RISK  (LCD_MAX_RISK / 2) // 50% of max risk
+#define HIGH_RISK (LCD_MAX_RISK / 2 + LCD_MAX_RISK / 4) // 75% of max risk
 
 // map between percentage risk and LCD risk
 #define GET_LCD_RISK(value) map(value, MIN_RISK, MAX_RISK, LCD_MIN_RISK, LCD_MAX_RISK)
@@ -40,6 +43,7 @@
 #include <SPI.h>
 #include "Adafruit_GFX.h"
 #include "Adafruit_HX8357.h"
+#include "recap_common.h"
 
 // PUBLIC API
 // draw the car and other static images
@@ -51,3 +55,4 @@ void drawRiskValue(int16_t riskValue);
 // draw the blind spot warning sections. active = if there is a car in the blind spot
 void drawBlindSpotWarningL(bool active);
 void drawBlindSpotWarningR(bool active);
+#endif
