@@ -46,7 +46,7 @@ Adafruit_GPS GPS(&GPSSerial);
 
 int setupGPS() {
   GPS.begin(9600);
-  GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA);
+  GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCONLY);
   GPS.sendCommand(PMTK_SET_NMEA_UPDATE_5HZ);
   GPS.sendCommand(PMTK_API_SET_FIX_CTL_5HZ);
   delay(1000);
@@ -58,6 +58,10 @@ int readGPS(Car_t* car) {
   char c = GPS.read();
   if (GPS.newNMEAreceived()) {
     GPS.parse(GPS.lastNMEA());
+
+    if(!GPS.fix)
+      return -1;
+
     car->seconds = epochTime(GPS.year, GPS.month, GPS.day, GPS.hour, GPS.minute, GPS.seconds);
     car->microseconds = GPS.milliseconds*1000;
 
@@ -69,7 +73,7 @@ int readGPS(Car_t* car) {
     car->heading = abs(fmod((GPS.angle/180.0 + 0.5)*PI,(2*PI)) - PI);
 
     return 0;
-  } else {
-    return -1;
-  }
+  } 
+
+  return -2;
 }
