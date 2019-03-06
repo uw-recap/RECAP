@@ -4,8 +4,10 @@
 // Main
 ////////////////////////////////////////////////////////////////////////////////
 Car_t currentData;
-Car_t tempData;
+Car_t otherData;
 bool newData = false;
+int lastTransmitTime = 0;
+const int maxTransmitRate = 100;
 
 void setup() {
 #if USE_USB
@@ -38,34 +40,63 @@ void setup() {
 }
 
 void loop() {
-  if(receiveLoRa(&tempData)) {
+  #if USE_LORA
+  if(receiveLoRa(&otherData)>=0) {
     newData = true;
-    addNewData(tempData);
+    
+    #if USE_DATA_PROC
+    addNewData(otherData);
+    #endif
+
+    //PRINT("OTHER DATA: ");
+    //printCar(otherData);
   }
+  #endif
   
-  if(readGPS(&currentData)) {
-    PRINT("x: ");
-    PRINT(currentData.xPosition);
-    PRINT(" y: ");
-    PRINT(currentData.yPosition);
-    PRINT(" h: ");
-    PRINTLN(currentData.heading);
+  #if USE_GPS
+  if(readGPS(&currentData)==0) {
+    //PRINT("x: ");
+    //PRINT(currentData.xPosition);
+    //PRINT(" y: ");
+    //PRINT(currentData.yPosition);
+    //PRINT(" h: ");
+    //PRINTLN(currentData.heading);
     
     #if USE_OBD
     readOBD(&currentData);
-    PRINT("Speed: ");
-    PRINT(currentData.velocity);
-    PRINT(" Accel: ");
-    PRINTLN(currentData.acceleration);
+    //PRINT("Speed: ");
+    //PRINT(currentData.velocity);
+    //PRINT(" Accel: ");
+    //PRINTLN(currentData.acceleration);
     #endif
     
-    transmitLoRa(&currentData);
+    #if USE_LORA
+    if((millis() - lastTransmitTime) > maxTransmitRate) {
+      transmitLoRa(&currentData);
+      lastTransmitTime = millis();
+    }
+    #endif
+
+    //PRINT("   MY DATA: ")
+    //printCar(currentData);
+
     newData = true;
   }
-  
+  #endif
+
   #if USE_DATA_PROC
   if(newData){
-    drawRiskValue(processData(currentData));
+    PRINT("X1: ");
+    PRINT(currentData.xPosition);
+    PRINT(" Y1: ");
+    PRINT(currentData.yPosition);
+    PRINT(" X2: ");
+    PRINT(otherData.xPosition);
+    PRINT(" Y2: ");
+    PRINT(otherData.yPosition);
+    PRINT(" Dist: ");
+    PRINTLN(dist(currentData,otherData));
+    //drawRiskValue(processData(currentData));
     newData = false;
   }
   #endif
