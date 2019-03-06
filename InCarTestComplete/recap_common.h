@@ -35,5 +35,6 @@ typedef struct {
 } Car_t;
 
 void printCar(Car_t car);
+void printCarLn(Car_t car);
 
 #endif
