@@ -34,4 +34,6 @@ typedef struct {
   float heading; //radians
 } Car_t;
 
+void printCar(Car_t car);
+
 #endif
