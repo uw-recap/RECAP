@@ -6,10 +6,9 @@ bool isLeapYear(int yr) {
   else return false;
 }
 
-
 byte daysInMonth(int yr,int m) {
   byte days[12]={31,28,31,30,31,30,31,31,30,31,30,31};
-  if (m==2 && isLeapYear(yr)) { 
+  if (m==2 && isLeapYear(yr)) {
     return 29;
   }
   else {
@@ -22,7 +21,7 @@ long epochTime(int years, int months, int days, int hours, int minutes, int seco
   if (years < 2000) {
     years += 2000;
   }
-  
+
   for (int yr=1970;yr<years;yr++) {
     if (isLeapYear(yr)) {
       epoch+=366*86400L;
@@ -30,11 +29,11 @@ long epochTime(int years, int months, int days, int hours, int minutes, int seco
       epoch+=365*86400L;
     }
   }
-  
+
   for(int m=1;m<months;m++) {
     epoch+=daysInMonth(years,m)*86400L;
   }
-  
+
   epoch += (days-1)*86400L;
   epoch += hours*3600L;
   epoch += minutes*60;
@@ -68,7 +67,7 @@ int readGPS(Car_t* car) {
     car->xPosition = WORLD_RADIUS*lonRad*cos(latRad);
     car->yPosition = WORLD_RADIUS*latRad;
     car->heading = abs(fmod((GPS.angle/180.0 + 0.5)*PI,(2*PI)) - PI);
-    
+
     return 0;
   } else {
     return -1;
