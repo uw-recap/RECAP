@@ -18,12 +18,18 @@ double tempX[TIMESTEPS+1];
 double tempY[TIMESTEPS+1];
 float tempU[TIMESTEPS+1];
 
-double dist(double x0, double y0, double x1, double y1) {
+float dist(float x0, float y0, float x1, float y1) {
   return sqrt(pow(x1-x0,2)+pow(y1-y0,2));
 }
 
-double dist(const Car_t& car1, const Car_t& car2) {
-  return dist(car1.xPosition, car1.yPosition, car2.xPosition, car2.yPosition);
+float haversine(float lat1, float long1, float lat2, float long2) {
+  float p = PI/180;
+  float a = 0.5 - cos((lat2-lat1)*p)/2.0 + cos(lat1*p) * cos(lat2*p) * (1.0-cos((long2-long1)*p))/2.0;
+  return 2 * WORLD_RADIUS * asin(sqrt(a));
+}
+
+float dist(const Car_t& car1, const Car_t& car2) {
+  return haversine(car1.xPosition, car1.yPosition, car2.xPosition, car2.yPosition);
 }
 
 double relativeAngle(double x0, double y0, double x1, double y1) {
