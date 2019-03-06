@@ -45,29 +45,19 @@ void loop() {
     newData = true;
     
     #if USE_DATA_PROC
-    addNewData(otherData);
+    //addNewData(otherData);
     #endif
 
-    //PRINT("OTHER DATA: ");
-    //printCar(otherData);
+//     PRINT("OTHER DATA: ");
+//     printCar(otherData);
   }
   #endif
   
   #if USE_GPS
   if(readGPS(&currentData)==0) {
-    //PRINT("x: ");
-    //PRINT(currentData.xPosition);
-    //PRINT(" y: ");
-    //PRINT(currentData.yPosition);
-    //PRINT(" h: ");
-    //PRINTLN(currentData.heading);
-    
+
     #if USE_OBD
     readOBD(&currentData);
-    //PRINT("Speed: ");
-    //PRINT(currentData.velocity);
-    //PRINT(" Accel: ");
-    //PRINTLN(currentData.acceleration);
     #endif
     
     #if USE_LORA
@@ -77,8 +67,8 @@ void loop() {
     }
     #endif
 
-    //PRINT("   MY DATA: ")
-    //printCar(currentData);
+//     PRINT("   MY DATA: ");
+//     printCar(currentData);
 
     newData = true;
   }
@@ -86,16 +76,7 @@ void loop() {
 
   #if USE_DATA_PROC
   if(newData){
-    PRINT("X1: ");
-    PRINT(currentData.xPosition);
-    PRINT(" Y1: ");
-    PRINT(currentData.yPosition);
-    PRINT(" X2: ");
-    PRINT(otherData.xPosition);
-    PRINT(" Y2: ");
-    PRINT(otherData.yPosition);
-    PRINT(" Dist: ");
-    PRINTLN(dist(currentData,otherData));
+    PRINTLN(dist(currentData, otherData));
     //drawRiskValue(processData(currentData));
     newData = false;
   }

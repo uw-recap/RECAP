@@ -3,10 +3,10 @@
 
 #include <Arduino.h>
 
-#define USE_OBD 1
+#define USE_OBD 0
 #define USE_GPS 1
 #define USE_LORA 1
-#define USE_LCD 1
+#define USE_LCD 0
 #define USE_DATA_PROC 1
 #define USE_USB 1
 
@@ -20,7 +20,7 @@
 
 #define SPI_FREQ 16E6
 
-#define WORLD_RADIUS 6371000 //Radius of earth in m
+#define WORLD_RADIUS 6372795.0 //Radius of earth in m
 
 typedef struct {
   int id;

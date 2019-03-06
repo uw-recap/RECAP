@@ -65,12 +65,10 @@ int readGPS(Car_t* car) {
     car->seconds = epochTime(GPS.year, GPS.month, GPS.day, GPS.hour, GPS.minute, GPS.seconds);
     car->microseconds = GPS.milliseconds*1000;
 
-    double latRad = (floor(GPS.latitude/100) + fmod(GPS.latitude, 100)/60.0) * PI/180;
-    double lonRad = -(floor(GPS.longitude/100) + fmod(GPS.longitude, 100)/60.0) * PI/180;
+    car->xPosition = (floor(GPS.latitude/100) + fmod(GPS.latitude, 100)/60.0);
+    car->yPosition = -(floor(GPS.longitude/100) + fmod(GPS.longitude, 100)/60.0);
 
-    car->xPosition = WORLD_RADIUS*lonRad*cos(latRad);
-    car->yPosition = WORLD_RADIUS*latRad;
-    car->heading = abs(fmod((GPS.angle/180.0 + 0.5)*PI,(2*PI)) - PI);
+    car->heading = GPS.angle;
 
     return 0;
   } 
