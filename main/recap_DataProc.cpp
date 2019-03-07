@@ -175,6 +175,30 @@ float lastRiskDistance = 0;
 float lastRiskTime = 0;
 float dx_dt = 0;
 
+float riskHeadway(Car_t self, Car_t other, float distance) {
+  float diffA = other.acceleration - self.acceleration;
+  float diffV = other.velocity - self.velocity;
+  float diffD = distance;
+
+  float a1 = sq(diffV) - 2*diffA*diffD;
+  float a2 = sq(self.velocity) - 2*self.acceleration*diffD;
+  
+  float t;
+
+  if (a1 >= 0) {
+    t = -(diffV+sqrt(a1))/diffA;
+  } else if (a2 >= 0) {
+    t = -(self.velocity+sqrt(a2))/self.acceleration;
+  } else {
+    return 0;
+  }
+
+  float tbraking = self.velocity/BRAKING_ACCELERATION*0.75;
+  float risk = (tbraking + 0.15) - t;
+
+  return risk;
+}
+
 int assessRisk(Car_t self, Car_t other) {
   float distance = dist(self, other);
   float t = millis()/1000.0;
