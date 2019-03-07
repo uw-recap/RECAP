@@ -173,48 +173,29 @@ int processData(Car_t myData) {
 
 float lastRiskDistance = 0;
 float lastRiskTime = 0;
-
-int riskStopping(Car_t self, Car_t other, float distance) {
-  float dthem = -sq(other.velocity) / 2 / other.acceleration;
-  float dus = distance + dthem; 
-  float aus = -sq(self.velocity) / 2 / dus;
-
-  float risk = (aus - 0.7) * 100/(4.5-0.7);
-
-  return constrain(risk, 0, 100);
-}
-
-int riskHeadway(Car_t self, Car_t other, float distance) {
-
-  const float headwayTime = 2.5; // seconds
-  float headwayDist = headwayTime * self.velocity + 0.5 * sq(headwayTime) * max(self.acceleration - other.acceleration, 0);
-
-  if(distance > headwayDist) {
-    return 0;
-  } 
-
-  float risk = (distance - headwayDist) * 100 / (10 - headwayDist);
-
-  return constrain(risk, 0, 100);
-}
+float dx_dt = 0;
 
 int assessRisk(Car_t self, Car_t other) {
-  float x = dist(self, other);
-  float dx = x - lastRiskDistance;
-  float t = millis() / 1000.0;
-  float dt = t - lastRiskTime;
+  float distance = dist(self, other);
+  float t = millis()/1000.0;
+  const float a = 0.7;
+  dx_dt = (a * ((distance - lastRiskDistance) / (t - lastRiskTime))) + ((1-a) * dx_dt);
   
   lastRiskTime = t;
-  lastRiskDistance = x;
+  lastRiskDistance = distance;
 
-  if((dx/dt > 0) || 
-     (self.velocity < other.velocity) || 
-     other.acceleration > 0 || // Simplifying assumption for now.
-     (abs(dx/dt) > max(self.velocity, other.velocity))) {
+  if(abs(dx_dt) > max(self.velocity, other.velocity)) {
     return 0;
   }
 
-  return max(riskStopping(self, other, x), riskHeadway(self, other, x));
-}
+  float safetyMargin = 20.0;
+  // Required acceleration so that following vehicle will attain the same speed 
+  // as the lead vehicle before the relative distance reaches 0.
+  float requiredAcceleration = other.acceleration - (sq(self.velocity - other.velocity) / (2 * min(distance-safetyMargin, safetyMargin)));
 
+  float c = 1.0; // Tuning Parameter
+  float risk = c * (-requiredAcceleration/BRAKING_ACCELERATION*75);
+
+  return constrain(risk, 0, 100);
+}
 

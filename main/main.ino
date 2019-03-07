@@ -47,9 +47,6 @@ void loop() {
     #if USE_DATA_PROC
     //addNewData(otherData);
     #endif
-
-//     PRINT("OTHER DATA: ");
-//     printCar(otherData);
   }
   #endif
   
@@ -66,9 +63,6 @@ void loop() {
       lastTransmitTime = millis();
     }
     #endif
-
-//     PRINT("   MY DATA: ");
-//     printCar(currentData);
 
     newData = true;
   }

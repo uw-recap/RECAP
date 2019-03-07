@@ -48,9 +48,14 @@ int setupOBD() {
 }
 
 int readOBD(Car_t* car) {
+  const float a = 0.7;
   int obdSpeed;
   if(obd.readPID(PID_SPEED, obdSpeed)) {
-    car->acceleration = 1000 * ((obdSpeed / 3.6) - car->velocity) / (millis() - lastOBDTime);
+    // Infinite Impulse Response filter with characteristic parameter 'a'
+    car->acceleration = a * (1000 * ((obdSpeed / 3.6) - car->velocity) / (millis() - lastOBDTime)) + (1-a)*car->acceleration;
+    // Truncate the IIR result if it gets really small to avoid loss-of-precision issues
+    car->acceleration = car->acceleration < 0.001 ? 0 : car->acceleration;
+
     lastOBDTime = millis();
     car->velocity = obdSpeed / 3.6;
     return 0;
