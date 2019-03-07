@@ -4,9 +4,9 @@
 #include <Arduino.h>
 
 #define USE_OBD 0
-#define USE_GPS 1
+#define USE_GPS 0
 #define USE_LORA 1
-#define USE_LCD 0
+#define USE_LCD 1
 #define USE_DATA_PROC 1
 #define USE_USB 1
 

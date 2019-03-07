@@ -43,23 +43,20 @@ void loop() {
   #if USE_LORA
   if(receiveLoRa(&otherData)>=0) {
     newData = true;
-    
+
     #if USE_DATA_PROC
     //addNewData(otherData);
     #endif
-
-//     PRINT("OTHER DATA: ");
-//     printCar(otherData);
   }
   #endif
-  
+
   #if USE_GPS
   if(readGPS(&currentData)==0) {
 
     #if USE_OBD
     readOBD(&currentData);
     #endif
-    
+
     #if USE_LORA
     if((millis() - lastTransmitTime) > maxTransmitRate) {
       transmitLoRa(&currentData);
@@ -67,18 +64,51 @@ void loop() {
     }
     #endif
 
-//     PRINT("   MY DATA: ");
-//     printCar(currentData);
-
     newData = true;
   }
   #endif
 
   #if USE_DATA_PROC
   if(newData){
-    PRINTLN(dist(currentData, otherData));
-    //drawRiskValue(processData(currentData));
+    // PRINTLN(dist(currentData, otherData));
+    // drawRiskValue(processData(currentData));
     newData = false;
   }
   #endif
+
+  for (int j = 0; j < 3; j++) {
+    // demo: sweep risk up, then sweep risk down
+    for (int i = MIN_RISK; i < MAX_RISK; i++) {
+      drawRiskValue(GET_LCD_RISK(i));
+      delay(50);
+    }
+
+    delay(5000);
+
+    for (int i = MAX_RISK; i > MIN_RISK; i--) {
+      drawRiskValue(GET_LCD_RISK(i));
+      delay(50);
+    }
+
+    delay(5000);
+  }
+
+  drawBlindSpotWarningL(true);
+  delay(1000);
+  drawBlindSpotWarningL(false);
+  delay(1000);
+  drawBlindSpotWarningL(true);
+  delay(1000);
+  drawBlindSpotWarningL(false);
+  delay(1000);
+
+  drawBlindSpotWarningR(true);
+  delay(1000);
+  drawBlindSpotWarningR(false);
+  delay(1000);
+  drawBlindSpotWarningR(true);
+  delay(1000);
+  drawBlindSpotWarningR(false);
+  delay(1000);
+
 }
