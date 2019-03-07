@@ -185,17 +185,17 @@ int riskStopping(Car_t self, Car_t other, float distance) {
 }
 
 int riskHeadway(Car_t self, Car_t other, float distance) {
-
   const float headwayTime = 2.5; // seconds
   float headwayDist = headwayTime * self.velocity;
 
-  if(distance > headwayDist) {
-    return 0;
-  }
 
   float risk = (distance - headwayDist) * 100 / (10 - headwayDist);
 
   risk = constrain(risk, 0, 100);
+
+  if(distance > headwayDist) {
+    risk = 0;
+  }
 
   // Prints here for testing
   PRINT(self.velocity);

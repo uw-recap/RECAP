@@ -8,6 +8,7 @@ Car_t otherData;
 bool newData = false;
 int lastTransmitTime = 0;
 const int maxTransmitRate = 100;
+float previousDistance = 0;
 
 void setup() {
 #if USE_USB
@@ -43,20 +44,20 @@ void loop() {
   #if USE_LORA
   if(receiveLoRa(&otherData)>=0) {
     newData = true;
-    
+
     #if USE_DATA_PROC
     //addNewData(otherData);
     #endif
   }
   #endif
-  
+
   #if USE_GPS
   if(readGPS(&currentData)==0) {
 
     #if USE_OBD
     readOBD(&currentData);
     #endif
-    
+
     #if USE_LORA
     if((millis() - lastTransmitTime) > maxTransmitRate) {
       transmitLoRa(&currentData);
@@ -71,11 +72,19 @@ void loop() {
   #if USE_DATA_PROC
   if(newData){
     newData = false;
+    const float a = 0.2;
 
     // Use the riskHeadway function directly to avoid weirdness with assessRisk
     // We can switch to the commented out code to test the assessRisk function.
     float distance = dist(currentData, otherData);
+    if (distance > 750) return;
+
+    // infinite impulse respoinse filter
+    distance = a * distance + (1-a) * previousDistance;
+
     drawRiskValue(riskHeadway(currentData, otherData, distance));
+
+    previousDistance = distance;
     //drawRiskValue(assessRisk(currentData, otherData));
   }
   #endif

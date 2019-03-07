@@ -3,7 +3,7 @@
 
 #include <Arduino.h>
 
-#define USE_OBD 0
+#define USE_OBD 1
 #define USE_GPS 1
 #define USE_LORA 1
 #define USE_LCD 0
