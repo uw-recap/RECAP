@@ -76,7 +76,7 @@ void loop() {
 
   #if USE_DATA_PROC
   if(newData){
-    PRINTLN(dist(currentData, otherData));
+    PRINTLN(assessRisk(currentData, otherData));
     //drawRiskValue(processData(currentData));
     newData = false;
   }

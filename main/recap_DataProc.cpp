@@ -170,3 +170,51 @@ int processData(Car_t myData) {
     return maxRisk;
   }
 }
+
+float lastRiskDistance = 0;
+float lastRiskTime = 0;
+
+int riskStopping(Car_t self, Car_t other, float distance) {
+  float dthem = -sq(other.velocity) / 2 / other.acceleration;
+  float dus = distance + dthem; 
+  float aus = -sq(self.velocity) / 2 / dus;
+
+  float risk = (aus - 0.7) * 100/(4.5-0.7);
+
+  return constrain(risk, 0, 100);
+}
+
+int riskHeadway(Car_t self, Car_t other, float distance) {
+
+  const float headwayTime = 2.5; // seconds
+  float headwayDist = headwayTime * self.velocity + 0.5 * sq(headwayTime) * max(self.acceleration - other.acceleration, 0);
+
+  if(distance > headwayDist) {
+    return 0;
+  } 
+
+  float risk = (distance - headwayDist) * 100 / (10 - headwayDist);
+
+  return constrain(risk, 0, 100);
+}
+
+int assessRisk(Car_t self, Car_t other) {
+  float x = dist(self, other);
+  float dx = x - lastRiskDistance;
+  float t = millis() / 1000.0;
+  float dt = t - lastRiskTime;
+  
+  lastRiskTime = t;
+  lastRiskDistance = x;
+
+  if((dx/dt > 0) || 
+     (self.velocity < other.velocity) || 
+     other.acceleration > 0 || // Simplifying assumption for now.
+     (abs(dx/dt) > max(self.velocity, other.velocity))) {
+    return 0;
+  }
+
+  return max(riskStopping(self, other, x), riskHeadway(self, other, x));
+}
+
+
