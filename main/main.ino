@@ -120,10 +120,46 @@ void loop() {
     }
     averageDistance /= AVG_FILTER_SIZE;
 //    drawRiskValue(riskKinematicTime(currentData, otherData, averageDistance));
-    
+
      drawRiskValue(reqStopAccelRisk(currentData, otherData, averageDistance));
 //    drawRiskValue(riskHeadway(currentData, otherData, averageDistance));
     //drawRiskValue(assessRisk(currentData, otherData));
   }
   #endif
+
+  for (int j = 0; j < 3; j++) {
+    // demo: sweep risk up, then sweep risk down
+    for (int i = MIN_RISK; i < MAX_RISK; i++) {
+      drawRiskValue(GET_LCD_RISK(i));
+      delay(50);
+    }
+
+    delay(5000);
+
+    for (int i = MAX_RISK; i > MIN_RISK; i--) {
+      drawRiskValue(GET_LCD_RISK(i));
+      delay(50);
+    }
+
+    delay(5000);
+  }
+
+  drawBlindSpotWarningL(true);
+  delay(1000);
+  drawBlindSpotWarningL(false);
+  delay(1000);
+  drawBlindSpotWarningL(true);
+  delay(1000);
+  drawBlindSpotWarningL(false);
+  delay(1000);
+
+  drawBlindSpotWarningR(true);
+  delay(1000);
+  drawBlindSpotWarningR(false);
+  delay(1000);
+  drawBlindSpotWarningR(true);
+  delay(1000);
+  drawBlindSpotWarningR(false);
+  delay(1000);
+
 }
