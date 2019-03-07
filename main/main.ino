@@ -70,7 +70,8 @@ void loop() {
 
   #if USE_DATA_PROC
   if(newData){
-    PRINTLN(assessRisk(currentData, otherData));
+    float distance = dist(currentData, otherData);
+    riskHeadway(currentData, otherData, distance);
     //drawRiskValue(processData(currentData));
     newData = false;
   }

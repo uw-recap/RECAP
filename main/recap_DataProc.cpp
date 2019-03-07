@@ -196,6 +196,15 @@ float riskHeadway(Car_t self, Car_t other, float distance) {
   float tbraking = self.velocity/BRAKING_ACCELERATION*0.75;
   float risk = (tbraking + 0.15) - t;
 
+  // Prints here for testing
+  PRINT(self.velocity);
+  PRINT(",");
+  PRINT(t);
+  PRINT(",");
+  PRINT(tbraking);
+  PRINT(",");
+  PRINTLN(risk);
+
   return risk;
 }
 
