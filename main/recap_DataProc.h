@@ -30,5 +30,7 @@ void calculateRisk(double x0[], double y0[], float u0[], double x1[], double y1[
 int processData(Car_t myData);
 
 int assessRisk(Car_t self, Car_t other);
+int riskStopping(Car_t self, Car_t other, float distance);
+int riskHeadway(Car_t self, Car_t other, float distance);
 
 #endif
