@@ -29,6 +29,9 @@ void calculateRisk(double x0[], double y0[], float u0[], double x1[], double y1[
 
 int processData(Car_t myData);
 
+// Adding this for now to make testing a bit easier
+int riskHeadway(Car_t self, Car_t other, float distance);
+
 int assessRisk(Car_t self, Car_t other);
 
 #endif

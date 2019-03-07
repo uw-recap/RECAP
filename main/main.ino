@@ -70,9 +70,13 @@ void loop() {
 
   #if USE_DATA_PROC
   if(newData){
-    PRINTLN(assessRisk(currentData, otherData));
-    //drawRiskValue(processData(currentData));
     newData = false;
+
+    // Use the riskHeadway function directly to avoid weirdness with assessRisk
+    // We can switch to the commented out code to test the assessRisk function.
+    float distance = dist(currentData, otherData);
+    drawRiskValue(riskHeadway(currentData, otherData, distance));
+    //drawRiskValue(assessRisk(currentData, otherData));
   }
   #endif
 }
