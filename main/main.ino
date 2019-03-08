@@ -5,11 +5,19 @@
 ////////////////////////////////////////////////////////////////////////////////
 Car_t currentData;
 Car_t otherData;
-bool newData = false;
+bool newDataGPS = false;
+bool newDataLoRa = false;
 int lastTransmitTime = 0;
 const int maxTransmitRate = 100;
 
+#define AVG_FILTER_SIZE 3
+float previousDistances[AVG_FILTER_SIZE];
+
 void setup() {
+  for (int i = 0; i < AVG_FILTER_SIZE; i++) {
+    previousDistances[i] = 0;
+  }
+
 #if USE_USB
   Serial.begin(115200);
   while (!Serial);
@@ -31,9 +39,17 @@ void setup() {
 #endif
 
 #if USE_LORA
-  PRINTLN("Initializing LoRa");
-  setupLoRa();
+  #ifdef TRANSMITTER
+    PRINTLN("Initializing LoRa TRANSMIT ONLY");
+    setupLoRa(LoRa_TX);
+  #else
+    PRINTLN("Initializing LoRa RECEIVE ONLY");
+    setupLoRa(LoRa_RX);
+  #endif
 #endif
+
+  pinMode(STATUS_LED, OUTPUT);
+  digitalWrite(STATUS_LED, HIGH);
 
   PRINTLN("Initialization Complete");
   currentData.id = CAR_ID;
@@ -41,13 +57,15 @@ void setup() {
 
 void loop() {
   #if USE_LORA
+  #ifndef TRANSMITTER
   if(receiveLoRa(&otherData)>=0) {
-    newData = true;
+    newDataLoRa = true;
 
     #if USE_DATA_PROC
     //addNewData(otherData);
     #endif
   }
+  #endif
   #endif
 
   #if USE_GPS
@@ -58,21 +76,52 @@ void loop() {
     #endif
 
     #if USE_LORA
+    #ifdef TRANSMITTER
     if((millis() - lastTransmitTime) > maxTransmitRate) {
       transmitLoRa(&currentData);
       lastTransmitTime = millis();
     }
     #endif
+    #endif
 
-    newData = true;
+    newDataGPS = true;
   }
   #endif
 
   #if USE_DATA_PROC
-  if(newData){
-    // PRINTLN(dist(currentData, otherData));
-    // drawRiskValue(processData(currentData));
-    newData = false;
+  if(newDataLoRa && newDataGPS){
+    newDataLoRa = newDataGPS = false;
+
+    // Use the riskHeadway function directly to avoid weirdness with assessRisk
+    // We can switch to the commented out code to test the assessRisk function.
+    float distance = dist(currentData, otherData);
+    float relAngle = bearing(currentData, otherData);
+    if (distance > 750) {
+      PRINTLN("OUT OF RANGE");
+      return;
+    }
+
+    if(abs(fmod(relAngle - currentData.heading + 360, 360) - 180) < 90) {
+      PRINTLN("LEAD CAR");
+      return;
+    }
+
+    // moving average filter: shift one down and insert latest value
+    float averageDistance = 0;
+    for (int i = AVG_FILTER_SIZE - 1; i > 0; i--) {
+      previousDistances[i] = previousDistances[i-1];
+    }
+    previousDistances[0] = distance;
+
+    // take average
+    for (int i = 0; i < AVG_FILTER_SIZE; i++) {
+      averageDistance += previousDistances[i];
+    }
+    averageDistance /= AVG_FILTER_SIZE;
+
+    drawRiskValue(riskHeadway(currentData, otherData, averageDistance));
+
+    //drawRiskValue(assessRisk(currentData, otherData));
   }
   #endif
 
@@ -110,5 +159,4 @@ void loop() {
   delay(1000);
   drawBlindSpotWarningR(false);
   delay(1000);
-
 }

@@ -15,10 +15,11 @@
 #define DATA_PROC_TRANS_INT 200
 #define CAR_ID 13
 
-float dist(float x0, float y0, float x1, float y1);
 float haversine(float lat1, float long1, float lat2, float long2);
-float fastHaversine(float lat1, float long1, float lat2, float long2);
 float dist(const Car_t& car1, const Car_t& car2);
+float bearing(float lat1, float long1, float lat2, float long2);
+float bearing(const Car_t& car1, const Car_t& car2);
+float dist(float x0, float y0, float x1, float y1);
 
 double relativeAngle(double x0, double y0, double x1, double y1);
 double relativeAngle(const Car_t& car1, const Car_t& car2);
@@ -29,5 +30,10 @@ void calculateCarTrajectory(Car_t c, double x[], double y[], float dt, float ini
 void calculateRisk(double x0[], double y0[], float u0[], double x1[], double y1[], double u1[], float dt, float tMax);
 
 int processData(Car_t myData);
+
+// Adding this for now to make testing a bit easier
+int riskHeadway(Car_t self, Car_t other, float distance);
+
+int assessRisk(Car_t self, Car_t other);
 
 #endif

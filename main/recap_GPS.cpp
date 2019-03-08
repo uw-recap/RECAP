@@ -51,6 +51,7 @@ int setupGPS() {
   GPS.sendCommand(PMTK_API_SET_FIX_CTL_5HZ);
   delay(1000);
   GPSSerial.println(PMTK_Q_RELEASE);
+
   return 0;
 }
 
