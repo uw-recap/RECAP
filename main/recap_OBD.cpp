@@ -57,11 +57,11 @@ int setupOBD() {
 int readOBD(Car_t* car) {
   int obdSpeed;
   if(obd.readPID(PID_SPEED, obdSpeed)) {
-    float currentAccel = (1000 * ((obdSpeed / 3.6) - car->velocity) / (millis() - lastOBDTime))
+    float currentAccel = (1000 * ((obdSpeed / 3.6) - car->velocity) / (millis() - lastOBDTime));
     lastOBDTime = millis();
 
     // Finite impulse response filter
-    for (int i = ACCEL_FIR_SIZE - 1; i > 0 i--) {
+    for (int i = ACCEL_FIR_SIZE - 1; i > 0; i--) {
       previousAcceleration[i] = previousAcceleration[i-1];
     }
     previousAcceleration[0] = currentAccel;
@@ -70,7 +70,7 @@ int readOBD(Car_t* car) {
     for (int i = 0; i < ACCEL_FIR_SIZE; i++) {
       accelAvg += previousAcceleration[i];
     }
-    accelAvg /= AVG_FILTER_SIZE;
+    accelAvg /= ACCEL_FIR_SIZE;
 
     // Infinite Impulse Response filter
     car->acceleration = ACCEL_IIR_CONST * accelAvg + (1-ACCEL_IIR_CONST) * car->acceleration;
