@@ -109,7 +109,6 @@ void loop() {
 
     drawRiskValue(riskHeadway(currentData, otherData, averageDistance));
 
-    previousDistance = distance;
     //drawRiskValue(assessRisk(currentData, otherData));
   }
   #endif
