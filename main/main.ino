@@ -5,12 +5,19 @@
 ////////////////////////////////////////////////////////////////////////////////
 Car_t currentData;
 Car_t otherData;
-bool newData = false;
+bool newDataGPS = false;
+bool newDataLoRa = false;
 int lastTransmitTime = 0;
 const int maxTransmitRate = 100;
-float previousDistance = 0;
+
+#define AVG_FILTER_SIZE 5
+float previousDistances[AVG_FILTER_SIZE];
 
 void setup() {
+  for (int i = 0; i < AVG_FILTER_SIZE; i++) {
+    previousDistances[i] = 0;
+  }
+
 #if USE_USB
   Serial.begin(115200);
   while (!Serial);
@@ -43,11 +50,11 @@ void setup() {
 void loop() {
   #if USE_LORA
   if(receiveLoRa(&otherData)>=0) {
-    newData = true;
+    newDataLoRa = true;
 
-    #if USE_DATA_PROC
+    // #if USE_DATA_PROC
     //addNewData(otherData);
-    #endif
+    // #endif
   }
   #endif
 
@@ -65,26 +72,34 @@ void loop() {
     }
     #endif
 
-    newData = true;
+    newDataGPS = true;
   }
   #endif
 
   #if USE_DATA_PROC
-  if(newData){
-    newData = false;
-    const float a = 0.2;
+  if(newDataLoRa && newDataGPS){
+    newDataLoRa = newDataGPS = false;
 
     // Use the riskHeadway function directly to avoid weirdness with assessRisk
     // We can switch to the commented out code to test the assessRisk function.
     float distance = dist(currentData, otherData);
-    if (distance > 750) return;
+    if (distance > 750) distance = 750;
 
-    // infinite impulse respoinse filter
-    distance = a * distance + (1-a) * previousDistance;
+    // moving average filter: shift one down and insert latest value
+    float averageDistance = 0;
+    for (int i = AVG_FILTER_SIZE - 1; i > 0; i--) {
+      previousDistances[i] = previousDistances[i-1];
+    }
+    previousDistances[0] = distance;
 
-    drawRiskValue(riskHeadway(currentData, otherData, distance));
+    // take average
+    for (int i = 0; i < AVG_FILTER_SIZE; i++) {
+      averageDistance += distance;
+    }
+    averageDistance /= AVG_FILTER_SIZE;
 
-    previousDistance = distance;
+    drawRiskValue(riskHeadway(currentData, otherData, averageDistance));
+
     //drawRiskValue(assessRisk(currentData, otherData));
   }
   #endif
