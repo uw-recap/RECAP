@@ -216,9 +216,7 @@ int riskHeadway(Car_t self, Car_t other, float distance) {
   // PRINT(",");
   PRINT(distance);
   PRINT(",");
-  PRINT(risk);
-  PRINT(",");
-  PRINT(self.acceleration);
+  PRINTLN(risk);
 
   return risk;
 }

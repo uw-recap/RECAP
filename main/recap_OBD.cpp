@@ -1,7 +1,7 @@
 #include "recap_OBD.h"
 
 #define ACCEL_FIR_SIZE 3
-#define ACCEL_IIR_CONST 0.3
+#define ACCEL_IIR_CONST 0.5
 float previousAcceleration[ACCEL_FIR_SIZE];
 
 #define OBDUART Serial2
@@ -48,7 +48,7 @@ int setupOBD() {
   }
 
   for(int i = 0; i < ACCEL_FIR_SIZE; i++) {
-   previousAcceleration[i] = 0; 
+   previousAcceleration[i] = 0;
   }
 
   return 0;

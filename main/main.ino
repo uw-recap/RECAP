@@ -10,14 +10,14 @@ bool newDataLoRa = false;
 int lastTransmitTime = 0;
 const int maxTransmitRate = 100;
 
-#define AVG_FILTER_SIZE 5
+#define AVG_FILTER_SIZE 3
 float previousDistances[AVG_FILTER_SIZE];
 
 void setup() {
   for (int i = 0; i < AVG_FILTER_SIZE; i++) {
     previousDistances[i] = 0;
   }
-  
+
 #if USE_USB
   Serial.begin(115200);
   while (!Serial);
@@ -48,13 +48,16 @@ void setup() {
   #endif
 #endif
 
+  pinMode(STATUS_LED, OUTPUT);
+  digitalWrite(STATUS_LED, HIGH);
+
   PRINTLN("Initialization Complete");
   currentData.id = CAR_ID;
 }
 
 void loop() {
   #if USE_LORA
-  #ifndef TRANSMITTER 
+  #ifndef TRANSMITTER
   if(receiveLoRa(&otherData)>=0) {
     newDataLoRa = true;
 
@@ -98,7 +101,7 @@ void loop() {
       return;
     }
 
-    if(abs(fmod(relAngle - currentData.heading + 360, 360) - 180) > 90) {
+    if(abs(fmod(relAngle - currentData.heading + 360, 360) - 180) < 90) {
       PRINTLN("LEAD CAR");
       return;
     }
