@@ -32,8 +32,13 @@ void setup() {
 #endif
 
 #if USE_LORA
-  PRINTLN("Initializing LoRa");
-  setupLoRa();
+  #ifdef TRANSMITTER
+    PRINTLN("Initializing LoRa TRANSMIT ONLY");
+    setupLoRa(LoRa_TX);
+  #else
+    PRINTLN("Initializing LoRa RECEIVE ONLY");
+    setupLoRa(LoRa_RX);
+  #endif
 #endif
 
   PRINTLN("Initialization Complete");
@@ -42,6 +47,7 @@ void setup() {
 
 void loop() {
   #if USE_LORA
+  #ifndef TRANSMITTER 
   if(receiveLoRa(&otherData)>=0) {
     newData = true;
 
@@ -49,6 +55,7 @@ void loop() {
     //addNewData(otherData);
     #endif
   }
+  #endif
   #endif
 
   #if USE_GPS
@@ -59,10 +66,12 @@ void loop() {
     #endif
 
     #if USE_LORA
+    #ifdef TRANSMITTER
     if((millis() - lastTransmitTime) > maxTransmitRate) {
       transmitLoRa(&currentData);
       lastTransmitTime = millis();
     }
+    #endif
     #endif
 
     newData = true;

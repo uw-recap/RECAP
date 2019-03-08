@@ -2,6 +2,8 @@
 
 int packetsReceived;
 
+static LoRaMode_t mode;
+
 //CRC-8 - based on the CRC8 formulas by Dallas/Maxim
 //code released under the therms of the GNU GPL 3.0 license
 uint8_t CRC8(const uint8_t *data, uint8_t len) {
@@ -26,7 +28,9 @@ void onReceive(int packetSize) {
   }
 }
 
-int setupLoRa() {
+int setupLoRa(LoRaMode_t m) {
+  mode = m;
+
   LoRa.setPins(LORA_CS, LORA_RST, LORA_IRQ);
   if (!LoRa.begin(LORA_FREQ)) {             // initialize ratio at 915 MHz
     PRINTLN("LoRa init failed. Check your connections.");
@@ -37,8 +41,13 @@ int setupLoRa() {
 
   LoRa.setSPIFrequency(SPI_FREQ);
 
-  LoRa.onReceive(onReceive);
-  LoRa.receive();
+  if(mode == LoRa_Duplex || mode == LoRa_RX) {
+    LoRa.onReceive(onReceive);
+    LoRa.receive();
+  } else {
+    LoRa.idle();
+  }
+
   PRINTLN("LoRa init succeeded.");
   return 0;
 }
@@ -54,11 +63,16 @@ int transmitLoRa(Car_t* car)
   LoRa.beginPacket();
   LoRa.write((uint8_t*)car, sizeof(Car_t));
   LoRa.write(crc);
-  LoRa.waitCAD();
- 
-  car->sequence++;
 
-  LoRa.receive(); // Resume Receiving after Transmit
+  if(mode != LoRa_TX) {
+    LoRa.waitCAD();
+    // Go Back to Receive Mode after Transmitting
+    LoRa.receive();
+  } else {
+    LoRa.endPacket();
+  }
+
+  car->sequence++;
 
   return 0;
 }

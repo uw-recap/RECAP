@@ -10,6 +10,10 @@
 #define USE_DATA_PROC 1
 #define USE_USB 1
 
+// If this macro is defined, then the device is 
+// TRANSMIT ONLY otherwise it is RECEIVE ONLY
+#define TRANSMITTER
+
 #if USE_USB
   #define PRINT(value) Serial.print(value);
   #define PRINTLN(value) Serial.println(value);

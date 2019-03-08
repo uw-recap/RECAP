@@ -9,7 +9,13 @@
 #define LORA_IRQ 3
 #define LORA_FREQ 915E6
 
-int setupLoRa();
+typedef enum LoRaMode_t {
+  LoRa_Duplex,
+  LoRa_TX,
+  LoRa_RX
+} LoRaMode_t;
+
+int setupLoRa(LoRaMode_t mode = LoRa_Duplex);
 
 int transmitLoRa(Car_t* car);
 int receiveLoRa(Car_t* car);
