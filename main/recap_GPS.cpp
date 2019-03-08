@@ -1,6 +1,6 @@
 #include "recap_GPS.h"
 
-#define MIN_SPEED_HEADING 4
+#define MIN_SPEED_HEADING 1
 
 // Epoch Time Helpers
 bool isLeapYear(int yr) {
