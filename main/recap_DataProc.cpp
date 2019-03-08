@@ -185,23 +185,25 @@ int riskStopping(Car_t self, Car_t other, float distance) {
 }
 
 int riskHeadway(Car_t self, Car_t other, float distance) {
-  const float headwayTime = 2.5; // seconds
-  float headwayDist = headwayTime * self.velocity;
+  const float minHeadwayTime = 0.5; // seconds
+  const float maxHeadwayTime = 3.0; // seconds
 
+  float minHeadwayDist = minHeadwayTime * self.velocity;
+  float maxHeadwayDist = maxHeadwayTime * self.velocity;
 
-  float risk = (distance - headwayDist) * 100 / (10 - headwayDist);
+  float risk = (distance - maxHeadwayDist) * 100 / (minHeadwayDist - maxHeadwayDist);
 
   risk = constrain(risk, 0, 100);
 
-  if(distance > headwayDist) {
+  if(distance > maxHeadwayDist) {
     risk = 0;
   }
 
   // Prints here for testing
   PRINT(self.velocity);
   PRINT(",");
-  PRINT(headwayDist);
-  PRINT(",");
+  // PRINT(headwayDist);
+  // PRINT(",");
   PRINT(distance);
   PRINT(",");
   PRINTLN(risk);
