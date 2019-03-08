@@ -1,7 +1,10 @@
 #include "recap_OBD.h"
 
-#define OBDUART Serial2
+#define ACCEL_FIR_SIZE 3
+#define ACCEL_IIR_CONST 0.3
+float previousAcceleration[ACCEL_FIR_SIZE];
 
+#define OBDUART Serial2
 Uart Serial2 (&sercom3, OBD_RX_PIN, OBD_TX_PIN, OBD_RX_PAD, OBD_TX_PAD);
 
 void SERCOM3_Handler()
@@ -44,20 +47,39 @@ int setupOBD() {
     PRINTLN(buf);
   }
 
+  for(int i = 0; i < ACCEL_FIR_SIZE; i++) {
+   previousAcceleration[i] = 0; 
+  }
+
   return 0;
 }
 
 int readOBD(Car_t* car) {
-  const float a = 0.7;
   int obdSpeed;
   if(obd.readPID(PID_SPEED, obdSpeed)) {
-    // Infinite Impulse Response filter with characteristic parameter 'a'
-    car->acceleration = a * (1000 * ((obdSpeed / 3.6) - car->velocity) / (millis() - lastOBDTime)) + (1-a)*car->acceleration;
+    float currentAccel = (1000 * ((obdSpeed / 3.6) - car->velocity) / (millis() - lastOBDTime))
+    lastOBDTime = millis();
+
+    // Finite impulse response filter
+    for (int i = ACCEL_FIR_SIZE - 1; i > 0 i--) {
+      previousAcceleration[i] = previousAcceleration[i-1];
+    }
+    previousAcceleration[0] = currentAccel;
+
+    float accelAvg = 0;
+    for (int i = 0; i < ACCEL_FIR_SIZE; i++) {
+      accelAvg += previousAcceleration[i];
+    }
+    accelAvg /= AVG_FILTER_SIZE;
+
+    // Infinite Impulse Response filter
+    car->acceleration = ACCEL_IIR_CONST * accelAvg + (1-ACCEL_IIR_CONST) * car->acceleration;
+
     // Truncate the IIR result if it gets really small to avoid loss-of-precision issues
     car->acceleration = car->acceleration < 0.001 ? 0 : car->acceleration;
 
-    lastOBDTime = millis();
     car->velocity = obdSpeed / 3.6;
+
     return 0;
   }
 }

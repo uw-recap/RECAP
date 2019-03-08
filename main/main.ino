@@ -92,7 +92,16 @@ void loop() {
     // Use the riskHeadway function directly to avoid weirdness with assessRisk
     // We can switch to the commented out code to test the assessRisk function.
     float distance = dist(currentData, otherData);
-    if (distance > 750) distance = 750;
+    float relAngle = bearing(currentData, otherData);
+    if (distance > 750) {
+      PRINTLN("OUT OF RANGE");
+      return;
+    }
+
+    if(abs(fmod(relAngle - currentData.heading + 360, 360) - 180) > 90) {
+      PRINTLN("LEAD CAR");
+      return;
+    }
 
     // moving average filter: shift one down and insert latest value
     float averageDistance = 0;
@@ -103,7 +112,7 @@ void loop() {
 
     // take average
     for (int i = 0; i < AVG_FILTER_SIZE; i++) {
-      averageDistance += distance;
+      averageDistance += previousDistances[i];
     }
     averageDistance /= AVG_FILTER_SIZE;
 

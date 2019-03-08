@@ -32,6 +32,16 @@ float dist(const Car_t& car1, const Car_t& car2) {
   return haversine(car1.xPosition, car1.yPosition, car2.xPosition, car2.yPosition);
 }
 
+float bearing(float lat1, float long1, float lat2, float long2) {
+  float y = sin(radians(long2-long1)) * cos(radians(lat2));
+  float x = cos(radians(lat1))*sin(radians(lat2)) - sin(radians(lat1))*cos(radians(lat2))*cos(radians(long2-long1));
+  return degrees(atan2(y, x));
+}
+
+float bearing(const Car_t& car1, const Car_t& car2) {
+  return bearing(car1.xPosition, car1.yPosition, car2.xPosition, car2.yPosition);
+}
+
 double relativeAngle(double x0, double y0, double x1, double y1) {
   return atan2((y1-y0), (x1-x0));
 }
@@ -206,7 +216,9 @@ int riskHeadway(Car_t self, Car_t other, float distance) {
   // PRINT(",");
   PRINT(distance);
   PRINT(",");
-  PRINTLN(risk);
+  PRINT(risk);
+  PRINT(",");
+  PRINT(self.acceleration);
 
   return risk;
 }

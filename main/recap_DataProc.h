@@ -17,6 +17,8 @@
 
 float haversine(float lat1, float long1, float lat2, float long2);
 float dist(const Car_t& car1, const Car_t& car2);
+float bearing(float lat1, float long1, float lat2, float long2);
+float bearing(const Car_t& car1, const Car_t& car2);
 float dist(float x0, float y0, float x1, float y1);
 
 double relativeAngle(double x0, double y0, double x1, double y1);
