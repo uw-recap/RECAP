@@ -221,6 +221,37 @@ int riskHeadway(Car_t self, Car_t other, float distance) {
   return risk;
 }
 
+int riskKinematicTime(Car_t self, Car_t other, float distance) {
+  float diffA = other.acceleration - self.acceleration;
+  float diffV = other.velocity - self.velocity;
+  float diffD = distance;
+
+  float diffT = other.seconds - self.seconds + (other.microseconds - self.microseconds)/1000000;
+  float distCorrection = diffV*diffT+0.5*diffA*sq(diffT);
+
+  // diffD += distCorrection;
+
+  float a1 = sq(diffV) - 2*diffA*diffD;
+  float a2 = sq(self.velocity) - 2*self.acceleration*diffD;
+
+  float t;
+
+  if (a1 >= 0) {
+    t = (sqrt(a1)-diffV)/diffA;
+    // t2 = (-sqrt(a1)-diffV)/diffA;
+  } else if (a2 >= 0) {
+    t = (sqrt(a2)-self.velocity)/self.acceleration;
+    // t2 = (-sqrt(a2)-self.velocity)/self.acceleration;
+  } else {
+    return 0;
+  }
+
+  float tbraking = self.velocity/BRAKING_ACCELERATION;
+  float risk = 75*t/((tbraking + 0.15));
+
+  return risk;
+}
+
 int assessRisk(Car_t self, Car_t other) {
   float x = dist(self, other);
   float dx = x - lastRiskDistance;
