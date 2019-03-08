@@ -17,7 +17,7 @@ void setup() {
   for (int i = 0; i < AVG_FILTER_SIZE; i++) {
     previousDistances[i] = 0;
   }
-
+  
 #if USE_USB
   Serial.begin(115200);
   while (!Serial);
@@ -39,8 +39,13 @@ void setup() {
 #endif
 
 #if USE_LORA
-  PRINTLN("Initializing LoRa");
-  setupLoRa();
+  #ifdef TRANSMITTER
+    PRINTLN("Initializing LoRa TRANSMIT ONLY");
+    setupLoRa(LoRa_TX);
+  #else
+    PRINTLN("Initializing LoRa RECEIVE ONLY");
+    setupLoRa(LoRa_RX);
+  #endif
 #endif
 
   PRINTLN("Initialization Complete");
@@ -49,13 +54,15 @@ void setup() {
 
 void loop() {
   #if USE_LORA
+  #ifndef TRANSMITTER 
   if(receiveLoRa(&otherData)>=0) {
     newDataLoRa = true;
 
-    // #if USE_DATA_PROC
+    #if USE_DATA_PROC
     //addNewData(otherData);
-    // #endif
+    #endif
   }
+  #endif
   #endif
 
   #if USE_GPS
@@ -66,10 +73,12 @@ void loop() {
     #endif
 
     #if USE_LORA
+    #ifdef TRANSMITTER
     if((millis() - lastTransmitTime) > maxTransmitRate) {
       transmitLoRa(&currentData);
       lastTransmitTime = millis();
     }
+    #endif
     #endif
 
     newDataGPS = true;
@@ -100,6 +109,7 @@ void loop() {
 
     drawRiskValue(riskHeadway(currentData, otherData, averageDistance));
 
+    previousDistance = distance;
     //drawRiskValue(assessRisk(currentData, otherData));
   }
   #endif
