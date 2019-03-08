@@ -1,5 +1,7 @@
 #include "recap_GPS.h"
 
+#define MIN_SPEED_HEADING 1
+
 // Epoch Time Helpers
 bool isLeapYear(int yr) {
   if (yr % 4 == 0 && yr % 100 != 0 || yr % 400 == 0) return true;
@@ -69,10 +71,12 @@ int readGPS(Car_t* car) {
     car->xPosition = (floor(GPS.latitude/100) + fmod(GPS.latitude, 100)/60.0);
     car->yPosition = -(floor(GPS.longitude/100) + fmod(GPS.longitude, 100)/60.0);
 
-    car->heading = GPS.angle;
+    if (car->velocity > MIN_SPEED_HEADING) {
+      car->heading = GPS.angle;
+    }
 
     return 0;
-  } 
+  }
 
   return -2;
 }
