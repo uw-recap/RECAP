@@ -8,6 +8,7 @@
 #define MAX_VALID_DIST 10.0
 #define MAX_VALID_ANGLE PI/6
 #define BRAKING_ACCELERATION 3.4
+#define SAFE_STOP_DIST 5
 #define REACTION_TIME 0.15
 #define TIMESTEPS 100
 #define UNCERTAINTY 0.2
@@ -33,6 +34,7 @@ int processData(Car_t myData);
 
 // Adding this for now to make testing a bit easier
 int riskHeadway(Car_t self, Car_t other, float distance);
+int reqStopAccelRisk(Car_t self, Car_t other, float distance);
 
 int riskKinematicTime(Car_t self, Car_t other, float distance);
 

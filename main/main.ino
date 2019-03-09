@@ -118,7 +118,8 @@ void loop() {
       averageDistance += previousDistances[i];
     }
     averageDistance /= AVG_FILTER_SIZE;
-    drawRiskValue(riskKinematicTime(currentData, otherData, averageDistance));
+//     drawRiskValue(riskKinematicTime(currentData, otherData, averageDistance));
+    drawRiskValue(reqStopAccelRisk(currentData, otherData, averageDistance));
 
     // drawRiskValue(riskHeadway(currentData, otherData, averageDistance));
     //drawRiskValue(assessRisk(currentData, otherData));

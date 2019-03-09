@@ -221,6 +221,16 @@ int riskHeadway(Car_t self, Car_t other, float distance) {
   return risk;
 }
 
+int reqStopAccelRisk(Car_t self, Car_t other, float distance) {
+  float a2 = other.acceleration - sq(other.velocity - self.velocity)/(2.0*(max(distance-SAFE_STOP_DIST, SAFE_STOP_DIST)));
+  float risk = (-a2) / BRAKING_ACCELERATION * 100;
+
+//   PRINT();
+//   PRINT(",");
+
+  return risk;
+}
+
 int riskKinematicTime(Car_t self, Car_t other, float distance) {
   float diffA = other.acceleration - self.acceleration;
   float diffV = other.velocity - self.velocity;
