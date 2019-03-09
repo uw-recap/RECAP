@@ -24,8 +24,8 @@
 #define LCD_MAX_RISK 150
 #define LCD_RISK_HEIGHT (LCD_MAX_RISK - LCD_MIN_RISK)
 #define LCD_RISK_OFFSETY 150
-#define MED_RISK  (LCD_MAX_RISK / 2) // 50% of max risk
-#define HIGH_RISK (LCD_MAX_RISK / 2 + LCD_MAX_RISK / 4) // 75% of max risk
+#define MED_RISK  (LCD_MAX_RISK / 3) // 33% of max risk
+#define HIGH_RISK (LCD_MAX_RISK / 2) // 50% of max risk
 
 // map between percentage risk and LCD risk
 #define GET_LCD_RISK(value) map(value, MIN_RISK, MAX_RISK, LCD_MIN_RISK, LCD_MAX_RISK)
