@@ -223,46 +223,36 @@ int riskHeadway(Car_t self, Car_t other, float distance) {
 
 int reqStopAccelRisk(Car_t self, Car_t other, float distance) {
   float a2 = other.acceleration - sq(other.velocity - self.velocity)/(2.0*(max(distance-SAFE_STOP_DIST, SAFE_STOP_DIST)));
-  float risk = (-a2) / BRAKING_ACCELERATION * 100;
+  float risk = constrain((-a2) / BRAKING_ACCELERATION * 300,0,100);
 
-//   PRINT();
-//   PRINT(",");
+  PRINTLN(risk);
 
   return risk;
-} 
+}
 
 int riskKinematicTime(Car_t self, Car_t other, float distance) {
   float diffA = other.acceleration - self.acceleration;
   float diffV = other.velocity - self.velocity;
   float diffD = distance;
 
-  float diffT = other.seconds - self.seconds + (other.microseconds - self.microseconds)/1000000;
-  float distCorrection = diffV*diffT+0.5*diffA*sq(diffT);
-
-  // diffD += distCorrection;
-
   float a1 = sq(diffV) - 2*diffA*diffD;
   float a2 = sq(self.velocity) - 2*self.acceleration*diffD;
 
   float t = 0;
+  float t2 = 0;
 
-  if (a1 >= 0 && diffA != 0) {
-    t = (diffV-sqrt(a1))/diffA;
-  } else if (a2 >= 0 && self.acceleration != 0) {
-    t = (self.velocity-sqrt(a2))/self.acceleration;
-  } else {
-    return 0;
-  }
+ if (a1 >= 0 && diffA != 0) {
+   t = (-diffV-sqrt(a1))/diffA;
+   t2 = (-diffV+sqrt(a1))/diffA;
+ } else if (a2 >= 0 && self.acceleration != 0) {
+   t = (self.velocity-sqrt(a2))/self.acceleration;
+ } else {
+   PRINTLN("RETURN 0")
+   return 0;
+ }
 
   float tbraking = self.velocity/BRAKING_ACCELERATION;
   float risk = (tbraking + 0.15)-t;
-
-    // Prints here for testing
-  PRINT(self.velocity);
-  PRINT(",");
-  PRINT(distance);
-  PRINT(",");
-  PRINTLN(risk);
 
   return risk;
 }

@@ -65,7 +65,8 @@ int readGPS(Car_t* car) {
     if(!GPS.fix)
       return -1;
 
-    car->seconds = epochTime(GPS.year, GPS.month, GPS.day, GPS.hour, GPS.minute, GPS.seconds);
+//    car->seconds = epochTime(GPS.year, GPS.month, GPS.day, GPS.hour, GPS.minute, GPS.seconds);
+    car->seconds = epochTime(0, 0, 0, GPS.hour, GPS.minute, GPS.seconds);
     car->microseconds = GPS.milliseconds*1000;
 
     car->xPosition = (floor(GPS.latitude/100) + fmod(GPS.latitude, 100)/60.0);
