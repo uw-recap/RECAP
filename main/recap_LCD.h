@@ -4,16 +4,15 @@
 // Colors
 #define BLACK 0x0000
 #define WHITE 0xFFFF
-#define GREEN 0x05A3
 #define YELLOW 0xFFE0
-#define LIGHT_ORANGE 0xFCC0
-#define DARK_ORANGE 0xFBC0
+#define ORANGE 0xFCC0
 #define RED 0xF800
-#define DARK_RED 0x7800
-#define DARK_YELLOW 0x7BE0
+#define GREY 0x7BEF
 
 #define BG_COLOR BLACK
 #define GRID_COLOR WHITE
+#define CAR_COLOR WHITE
+#define BOUND_COLOR GREY
 
 // risk percentage that we get from the data processing algorithm
 #define MIN_RISK 0

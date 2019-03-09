@@ -6,6 +6,11 @@ int16_t fwWarningLeftBound[LCD_RISK_HEIGHT][2];
 int16_t fwWarningRightBound[LCD_RISK_HEIGHT][2];
 int16_t currentDisplayedRisk;
 
+#define BLINK_STATE_MAX 16 // must be a power of 2
+#define MASK (BLINK_STATE_MAX >> 1)
+// if first bit is 0, draw red circle; if it is 1, draw black circle
+uint8_t blinkState = 0;
+
 /*********** "PRIVATE" FUNCTIONS ***********/
 // assume riskValue is between LCD_MIN_RISK and LCD_MAX_RISK
 void drawRiskCircles(int16_t riskValue) {
@@ -13,54 +18,72 @@ void drawRiskCircles(int16_t riskValue) {
 
   // light up YELLOW light if risk is MEDIUM
   if (riskValue > MED_RISK && currentDisplayedRisk <= MED_RISK) {
-    // draw bright yellow circle
-    tft.fillCircle(80, 90, 50, YELLOW);
+    // draw filled yellow circle
+    tft.fillCircle(80, 90, 48, YELLOW);
   } else if (riskValue < MED_RISK && currentDisplayedRisk >= MED_RISK) {
-    // draw dull yellow circle
-    tft.fillCircle(80, 90, 50, DARK_YELLOW);
+    // draw hollow circle
+    tft.fillCircle(80, 230, 48, BG_COLOR);
+    tft.fillCircle(80, 90, 48, BG_COLOR);
+    blinkState = 0;
   }
 
   // light up RED light if risk is HIGH
-  if (riskValue > HIGH_RISK && currentDisplayedRisk <= HIGH_RISK) {
-    // draw bright red circle
-    tft.fillCircle(80, 230, 50, RED);
+  if (riskValue > HIGH_RISK) {
+    if (currentDisplayedRisk <= HIGH_RISK) {
+      // make sure the yellow circle is filled
+      tft.fillCircle(80, 90, 48, YELLOW);
+    }
+
+    // check the leading bit of blinkState; if 0 then draw circle; else don't
+    if (!(blinkState & MASK)) {
+      // draw filled red circle
+      tft.fillCircle(80, 230, 48, RED);
+    }
+    else {
+      // draw hollow red circle
+      tft.fillCircle(80, 230, 48, BG_COLOR);
+    }
+
+    blinkState++;
+    if (blinkState == BLINK_STATE_MAX) blinkState = 0; // I tried % but it didn't work
   } else if (riskValue < HIGH_RISK && currentDisplayedRisk >= HIGH_RISK) {
-    // draw dull red circle
-    tft.fillCircle(80, 230, 50, DARK_RED);
+    // draw hollow red circle and reset state counter
+    tft.fillCircle(80, 230, 48, BG_COLOR);
+    blinkState = 0;
   }
 }
 
 void drawCar() {
   // bottom
-  tft.drawLine(299, 34, 341, 34, GRID_COLOR);
-  tft.drawLine(299, 35, 341, 35, GRID_COLOR);
+  tft.drawLine(299, 34, 341, 34, CAR_COLOR);
+  tft.drawLine(299, 35, 341, 35, CAR_COLOR);
   // top
-  tft.drawLine(299, 149, 341, 149, GRID_COLOR);
-  tft.drawLine(299, 150, 341, 150, GRID_COLOR);
+  tft.drawLine(299, 149, 341, 149, CAR_COLOR);
+  tft.drawLine(299, 150, 341, 150, CAR_COLOR);
   // left side
-  tft.drawLine(299, 34, 299, 150, GRID_COLOR);
-  tft.drawLine(300, 34, 300, 150, GRID_COLOR);
+  tft.drawLine(299, 34, 299, 150, CAR_COLOR);
+  tft.drawLine(300, 34, 300, 150, CAR_COLOR);
   // right side
-  tft.drawLine(340, 34, 340, 150, GRID_COLOR);
-  tft.drawLine(341, 34, 341, 150, GRID_COLOR);
+  tft.drawLine(340, 34, 340, 150, CAR_COLOR);
+  tft.drawLine(341, 34, 341, 150, CAR_COLOR);
   // front windshield
-  tft.drawLine(305, 125, 335, 125, GRID_COLOR);
-  tft.drawLine(335, 125, 332, 110, GRID_COLOR);
-  tft.drawLine(332, 110, 308, 110, GRID_COLOR);
-  tft.drawLine(308, 110, 305, 125, GRID_COLOR);
+  tft.drawLine(305, 125, 335, 125, CAR_COLOR);
+  tft.drawLine(335, 125, 332, 110, CAR_COLOR);
+  tft.drawLine(332, 110, 308, 110, CAR_COLOR);
+  tft.drawLine(308, 110, 305, 125, CAR_COLOR);
   // roof
-  tft.drawLine(308, 108, 332, 108, GRID_COLOR);
-  tft.drawLine(332, 108, 332, 78, GRID_COLOR);
-  tft.drawLine(332, 78, 308, 78, GRID_COLOR);
-  tft.drawLine(308, 78, 308, 108, GRID_COLOR);
+  tft.drawLine(308, 108, 332, 108, CAR_COLOR);
+  tft.drawLine(332, 108, 332, 78, CAR_COLOR);
+  tft.drawLine(332, 78, 308, 78, CAR_COLOR);
+  tft.drawLine(308, 78, 308, 108, CAR_COLOR);
   // rear windshield
-  tft.drawLine(308, 76, 332, 76, GRID_COLOR);
-  tft.drawLine(332, 76, 335, 61, GRID_COLOR);
-  tft.drawLine(335, 61, 305, 61, GRID_COLOR);
-  tft.drawLine(305, 61, 308, 76, GRID_COLOR);
+  tft.drawLine(308, 76, 332, 76, CAR_COLOR);
+  tft.drawLine(332, 76, 335, 61, CAR_COLOR);
+  tft.drawLine(335, 61, 305, 61, CAR_COLOR);
+  tft.drawLine(305, 61, 308, 76, CAR_COLOR);
   // mirrors
-  tft.drawLine(341, 110, 346, 110, GRID_COLOR);
-  tft.drawLine(299, 110, 294, 110, GRID_COLOR);
+  tft.drawLine(341, 110, 346, 110, CAR_COLOR);
+  tft.drawLine(299, 110, 294, 110, CAR_COLOR);
 }
 
 // bresenham algorithm taken straight from Arduino GFX library with minor modifications
@@ -120,13 +143,16 @@ void drawStaticImages() {
     tft.drawFastVLine(164 + i, 0, 320, GRID_COLOR);
   }
 
+  // draw risk circles
+  tft.fillCircle(80, 90, 50, YELLOW);
+  tft.fillCircle(80, 230, 50, RED);
   drawRiskCircles(LCD_MIN_RISK); // draw the red and yellow circles (not active)
   drawCar();
 
   // draw forward warning area
-  tft.drawLine(299, 150, 279, 301, GRID_COLOR);
-  tft.drawLine(341, 150, 361, 301, GRID_COLOR);
-  tft.drawLine(279, 301, 361, 301, GRID_COLOR);
+  tft.drawLine(299, 150, 279, 301, BOUND_COLOR);
+  tft.drawLine(341, 150, 361, 301, BOUND_COLOR);
+  tft.drawLine(279, 301, 361, 301, BOUND_COLOR);
 
   storeLineCoordinates(279, 300, 299, 150, fwWarningRightBound);
   storeLineCoordinates(361, 300, 341, 150, fwWarningLeftBound);
@@ -185,15 +211,15 @@ void drawRiskValue(int16_t riskValue) {
 }
 
 void drawBlindSpotWarningL(bool active) {
-  tft.drawLine(341, 109, 396, 101, active ? LIGHT_ORANGE : GRID_COLOR);
-  tft.drawLine(341, 109, 391, 10, active ? LIGHT_ORANGE : GRID_COLOR);
+  tft.drawLine(341, 109, 396, 101, active ? ORANGE : BOUND_COLOR);
+  tft.drawLine(341, 109, 391, 10, active ? ORANGE : BOUND_COLOR);
 
   // exclamation mark
   if (active) {
-    tft.drawFastVLine(391, 54, 36, LIGHT_ORANGE);
-    tft.drawFastVLine(390, 54, 36, LIGHT_ORANGE);
-    tft.drawFastVLine(391, 46, 3, LIGHT_ORANGE);
-    tft.drawFastVLine(390, 46, 3, LIGHT_ORANGE);
+    tft.drawFastVLine(391, 54, 36, ORANGE);
+    tft.drawFastVLine(390, 54, 36, ORANGE);
+    tft.drawFastVLine(391, 46, 3, ORANGE);
+    tft.drawFastVLine(390, 46, 3, ORANGE);
   } else {
     tft.drawFastVLine(391, 54, 36, BG_COLOR);
     tft.drawFastVLine(390, 54, 36, BG_COLOR);
@@ -203,15 +229,15 @@ void drawBlindSpotWarningL(bool active) {
 }
 
 void drawBlindSpotWarningR(bool active) {
-  tft.drawLine(299, 109, 244, 101, active ? LIGHT_ORANGE : GRID_COLOR);
-  tft.drawLine(299, 109, 249, 10, active ? LIGHT_ORANGE : GRID_COLOR);
+  tft.drawLine(299, 109, 244, 101, active ? ORANGE : BOUND_COLOR);
+  tft.drawLine(299, 109, 249, 10, active ? ORANGE : BOUND_COLOR);
 
   // exclamation mark
   if (active) {
-    tft.drawFastVLine(249, 54, 36, LIGHT_ORANGE);
-    tft.drawFastVLine(248, 54, 36, LIGHT_ORANGE);
-    tft.drawFastVLine(249, 46, 3, LIGHT_ORANGE);
-    tft.drawFastVLine(248, 46, 3, LIGHT_ORANGE);
+    tft.drawFastVLine(249, 54, 36, ORANGE);
+    tft.drawFastVLine(248, 54, 36, ORANGE);
+    tft.drawFastVLine(249, 46, 3, ORANGE);
+    tft.drawFastVLine(248, 46, 3, ORANGE);
   } else {
     tft.drawFastVLine(249, 54, 36, BG_COLOR);
     tft.drawFastVLine(248, 54, 36, BG_COLOR);
