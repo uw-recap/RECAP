@@ -97,12 +97,13 @@ void loop() {
     float distance = dist(currentData, otherData);
     float relAngle = bearing(currentData, otherData);
     if (distance > 750) {
-      PRINTLN("OUT OF RANGE");
+//      PRINTLN("OUT OF RANGE");
       return;
     }
 
     if(abs(fmod(relAngle - currentData.heading + 360, 360) - 180) < 90) {
-      PRINTLN("LEAD CAR");
+//      PRINTLN("LEAD CAR");
+      drawRiskValue(0);
       return;
     }
 
@@ -120,8 +121,9 @@ void loop() {
     averageDistance /= AVG_FILTER_SIZE;
     drawRiskValue(riskKinematicTime(currentData, otherData, averageDistance));
 
-    // drawRiskValue(riskHeadway(currentData, otherData, averageDistance));
+//    drawRiskValue(riskHeadway(currentData, otherData, averageDistance));
     //drawRiskValue(assessRisk(currentData, otherData));
   }
   #endif
 }
+
