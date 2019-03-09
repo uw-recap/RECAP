@@ -1,5 +1,5 @@
-//#define PLATFORM_ARDUINO_UNO
-#define PLATFORM_FEATHER_M0
+#ifndef _RECAP_LCD_H_
+#define _RECAP_LCD_H_
 
 // Colors
 #define BLACK 0x0000
@@ -24,23 +24,16 @@
 #define LCD_MAX_RISK 150
 #define LCD_RISK_HEIGHT (LCD_MAX_RISK - LCD_MIN_RISK)
 #define LCD_RISK_OFFSETY 150
-#define MED_RISK  (LCD_MAX_RISK / 2)
-#define HIGH_RISK (LCD_MAX_RISK / 2 + LCD_MAX_RISK / 4)
+#define MED_RISK  (LCD_MAX_RISK / 3) // 33% of max risk
+#define HIGH_RISK (LCD_MAX_RISK / 2) // 50% of max risk
 
 // map between percentage risk and LCD risk
 #define GET_LCD_RISK(value) map(value, MIN_RISK, MAX_RISK, LCD_MIN_RISK, LCD_MAX_RISK)
 
 // SPI pinouts
-//#ifdef PLATFORM_ARDUINO_UNO
-//#define TFT_CS 10
-//#define TFT_DC 9
-//#define TFT_RST 8 // RST can be set to -1 if you tie it to Arduino's reset
-//#endif
-#ifdef PLATFORM_FEATHER_M0
 #define TFT_CS 9
 #define TFT_DC 10
 #define TFT_RST -1 // RST can be set to -1 if you tie it to Arduino's reset
-#endif
 
 // helper macro (originally from GFX library)
 #ifndef _swap_int16_t
@@ -50,6 +43,7 @@
 #include <SPI.h>
 #include "Adafruit_GFX.h"
 #include "Adafruit_HX8357.h"
+#include "recap_common.h"
 
 // PUBLIC API
 // draw the car and other static images
@@ -61,3 +55,4 @@ void drawRiskValue(int16_t riskValue);
 // draw the blind spot warning sections. active = if there is a car in the blind spot
 void drawBlindSpotWarningL(bool active);
 void drawBlindSpotWarningR(bool active);
+#endif

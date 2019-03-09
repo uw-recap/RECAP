@@ -1,4 +1,4 @@
-#include "LCD_helpers.h"
+#include "recap_LCD.h"
 
 /*********** GLOBALS ***********/
 Adafruit_HX8357 tft = Adafruit_HX8357(TFT_CS, TFT_DC, TFT_RST);
@@ -10,7 +10,7 @@ int16_t currentDisplayedRisk;
 // assume riskValue is between LCD_MIN_RISK and LCD_MAX_RISK
 void drawRiskCircles(int16_t riskValue) {
   if (riskValue > LCD_MAX_RISK || riskValue < LCD_MIN_RISK) return;
-  
+
   // light up YELLOW light if risk is MEDIUM
   if (riskValue > MED_RISK && currentDisplayedRisk <= MED_RISK) {
     // draw bright yellow circle
@@ -64,8 +64,8 @@ void drawCar() {
 }
 
 // bresenham algorithm taken straight from Arduino GFX library with minor modifications
-void storeLineCoordinates(int16_t x0, int16_t y0, int16_t x1, int16_t y1, 
-  int16_t storage[LCD_RISK_HEIGHT][2]) 
+void storeLineCoordinates(int16_t x0, int16_t y0, int16_t x1, int16_t y1,
+  int16_t storage[LCD_RISK_HEIGHT][2])
 {
   int16_t steep = abs(y1 - y0) > abs(x1 - x0);
   if (steep) {
@@ -119,10 +119,10 @@ void drawStaticImages() {
   for (uint8_t i = 0; i < 5; i++) {
     tft.drawFastVLine(164 + i, 0, 320, GRID_COLOR);
   }
-  
+
   drawRiskCircles(LCD_MIN_RISK); // draw the red and yellow circles (not active)
   drawCar();
-  
+
   // draw forward warning area
   tft.drawLine(299, 150, 279, 301, GRID_COLOR);
   tft.drawLine(341, 150, 361, 301, GRID_COLOR);
@@ -143,8 +143,8 @@ uint16_t pickColor(int16_t riskValue) {
 
 /*********** PUBLIC API ***********/
 void setupLCD() {
-  tft.begin(16E6);
-  tft.setRotation(3);
+  tft.begin(SPI_FREQ);
+  tft.setRotation(1);
   tft.fillScreen(BG_COLOR);
   currentDisplayedRisk = LCD_MAX_RISK;
   drawStaticImages();
@@ -155,23 +155,31 @@ void setupLCD() {
 // risk value should be between LCD_MIN_RISK and LCD_MAX_RISK to proceed
 void drawRiskValue(int16_t riskValue) {
   if (riskValue > LCD_MAX_RISK || riskValue < LCD_MIN_RISK) return;
-  
+
   int16_t diff = riskValue - currentDisplayedRisk;
   if (diff > 0) {
     for (int i = currentDisplayedRisk; i < riskValue; i++) {
       int displayIndex = LCD_RISK_HEIGHT - 1 - i;
       uint16_t color = pickColor(i);
-      tft.drawFastHLine(fwWarningRightBound[displayIndex][0] + 1, fwWarningRightBound[displayIndex][1] + 1, 
-      (fwWarningLeftBound[displayIndex][0] - fwWarningRightBound[displayIndex][0] - 1), color);
+      tft.drawFastHLine(
+        fwWarningRightBound[displayIndex][0] + 1, // x
+        fwWarningRightBound[displayIndex][1] + 1, // y
+        (fwWarningLeftBound[displayIndex][0] - fwWarningRightBound[displayIndex][0] - 1), // width
+        color
+      );
     }
   } else {
     for(int i = currentDisplayedRisk; i > riskValue; i--) {
       int displayIndex = LCD_RISK_HEIGHT - 1 - i;
-      tft.drawFastHLine(fwWarningRightBound[displayIndex][0] + 1, fwWarningRightBound[displayIndex][1] + 1, 
-      (fwWarningLeftBound[displayIndex][0] - fwWarningRightBound[displayIndex][0] - 1), BG_COLOR);
+      tft.drawFastHLine(
+        fwWarningRightBound[displayIndex][0] + 1, // x
+        fwWarningRightBound[displayIndex][1] + 1, // y
+        (fwWarningLeftBound[displayIndex][0] - fwWarningRightBound[displayIndex][0] - 1), // width
+        BG_COLOR
+      );
     }
-  }  
-  
+  }
+
   drawRiskCircles(riskValue);
   currentDisplayedRisk = riskValue;
 }
@@ -196,8 +204,8 @@ void drawBlindSpotWarningL(bool active) {
 
 void drawBlindSpotWarningR(bool active) {
   tft.drawLine(299, 109, 244, 101, active ? LIGHT_ORANGE : GRID_COLOR);
-  tft.drawLine(299, 109, 249, 10, active ? LIGHT_ORANGE : GRID_COLOR);  
-  
+  tft.drawLine(299, 109, 249, 10, active ? LIGHT_ORANGE : GRID_COLOR);
+
   // exclamation mark
   if (active) {
     tft.drawFastVLine(249, 54, 36, LIGHT_ORANGE);
