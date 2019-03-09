@@ -1,5 +1,7 @@
 #include "recap_GPS.h"
 
+#define MIN_SPEED_HEADING 1
+
 // Epoch Time Helpers
 bool isLeapYear(int yr) {
   if (yr % 4 == 0 && yr % 100 != 0 || yr % 400 == 0) return true;
@@ -51,6 +53,7 @@ int setupGPS() {
   GPS.sendCommand(PMTK_API_SET_FIX_CTL_5HZ);
   delay(1000);
   GPSSerial.println(PMTK_Q_RELEASE);
+
   return 0;
 }
 
@@ -62,16 +65,19 @@ int readGPS(Car_t* car) {
     if(!GPS.fix)
       return -1;
 
-    car->seconds = epochTime(GPS.year, GPS.month, GPS.day, GPS.hour, GPS.minute, GPS.seconds);
+//    car->seconds = epochTime(GPS.year, GPS.month, GPS.day, GPS.hour, GPS.minute, GPS.seconds);
+    car->seconds = epochTime(0, 0, 0, GPS.hour, GPS.minute, GPS.seconds);
     car->microseconds = GPS.milliseconds*1000;
 
     car->xPosition = (floor(GPS.latitude/100) + fmod(GPS.latitude, 100)/60.0);
     car->yPosition = -(floor(GPS.longitude/100) + fmod(GPS.longitude, 100)/60.0);
 
-    car->heading = GPS.angle;
+    if (car->velocity > MIN_SPEED_HEADING) {
+      car->heading = GPS.angle;
+    }
 
     return 0;
-  } 
+  }
 
   return -2;
 }

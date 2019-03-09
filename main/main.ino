@@ -5,11 +5,19 @@
 ////////////////////////////////////////////////////////////////////////////////
 Car_t currentData;
 Car_t otherData;
-bool newData = false;
+bool newDataGPS = false;
+bool newDataLoRa = false;
 int lastTransmitTime = 0;
 const int maxTransmitRate = 100;
 
+#define AVG_FILTER_SIZE 5
+float previousDistances[AVG_FILTER_SIZE];
+
 void setup() {
+  for (int i = 0; i < AVG_FILTER_SIZE; i++) {
+    previousDistances[i] = 0;
+  }
+
 #if USE_USB
   Serial.begin(115200);
   while (!Serial);
@@ -31,98 +39,127 @@ void setup() {
 #endif
 
 #if USE_LORA
-  PRINTLN("Initializing LoRa");
-  setupLoRa();
+  #ifdef TRANSMITTER
+    PRINTLN("Initializing LoRa TRANSMIT ONLY");
+    setupLoRa(LoRa_TX);
+  #else
+    PRINTLN("Initializing LoRa RECEIVE ONLY");
+    setupLoRa(LoRa_RX);
+  #endif
 #endif
+
+  pinMode(STATUS_LED, OUTPUT);
+  digitalWrite(STATUS_LED, HIGH);
 
   PRINTLN("Initialization Complete");
   currentData.id = CAR_ID;
 }
 
 void loop() {
-  // 403 Tamarack
-  double lat1 = 43 + 28.9950/60.0;
-  double long1 = -(80 + 31.9480/60.0);
-
-  // 110 Columbia
-  double lat2 = 43 + 28.7220/60.0;
-  double long2 = -(80 + 32.1590/60.0);
-  // expected distance: 560-575 m
-
-
-  // bridgeport x hwy 85
-  lat1 = 43.474005;
-  long1 = -80.493757;
-
-  // university x hwy 85
-  lat2 = 43.486170;
-  long2 = -80.501401;
-  // expected distance: 1.47 km
-
-  double distance;
-
-  long timeStart = micros();
-
-  for (int i = 0; i < 1000; i++) {
-    double lat1Rad = radians(lat1);
-    double lat2Rad = radians(lat2);
-    double dLon = radians(long2 - long1);
-    // forumla from here: https://www.movable-type.co.uk/scripts/latlong.html
-    distance = acos(sin(lat1Rad)*sin(lat2Rad) + cos(lat1Rad)*cos(lat2Rad)*cos(dLon))*WORLD_RADIUS;
-  }
-
-  long timeStop = micros();
-
-  PRINT("Dist: "); PRINTLN(distance);
-  PRINT("Total Calc time: "); PRINTLN(timeStop - timeStart);
-  PRINT("Avg calc time: "); PRINTLN((timeStop-timeStart)/1000.0);
-  while(true);
-
   #if USE_LORA
+  #ifndef TRANSMITTER
   if(receiveLoRa(&otherData)>=0) {
-    newData = true;
+    newDataLoRa = true;
 
     #if USE_DATA_PROC
     //addNewData(otherData);
     #endif
-
-//     PRINT("OTHER DATA: ");
-//     printCar(otherData);
   }
+  #endif
   #endif
 
   #if USE_GPS
   if(readGPS(&currentData)==0) {
-    //PRINT("x: ");
-    //PRINT(currentData.xPosition);
-    //PRINT(" y: ");
-    //PRINT(currentData.yPosition);
-    //PRINT(" h: ");
-    //PRINTLN(currentData.heading);
 
     #if USE_OBD
     readOBD(&currentData);
     #endif
 
     #if USE_LORA
+    #ifdef TRANSMITTER
     if((millis() - lastTransmitTime) > maxTransmitRate) {
       transmitLoRa(&currentData);
       lastTransmitTime = millis();
     }
     #endif
+    #endif
 
-//     PRINT("   MY DATA: ");
-//     printCar(currentData);
-
-    newData = true;
+    newDataGPS = true;
   }
   #endif
 
   #if USE_DATA_PROC
-  if(newData){
-    PRINTLN(dist(currentData, otherData));
-    //drawRiskValue(processData(currentData));
-    newData = false;
+  if(newDataLoRa && newDataGPS){
+    newDataLoRa = newDataGPS = false;
+
+    // Use the riskHeadway function directly to avoid weirdness with assessRisk
+    // We can switch to the commented out code to test the assessRisk function.
+    float distance = dist(currentData, otherData);
+    float relAngle = bearing(currentData, otherData);
+    if (distance > 750) {
+//      PRINTLN("OUT OF RANGE");
+      return;
+    }
+
+    if(abs(fmod(relAngle - currentData.heading + 360, 360) - 180) < 90) {
+//      PRINTLN("LEAD CAR");
+      drawRiskValue(0);
+      return;
+    }
+
+    // moving average filter: shift one down and insert latest value
+    float averageDistance = 0;
+    for (int i = AVG_FILTER_SIZE - 1; i > 0; i--) {
+      previousDistances[i] = previousDistances[i-1];
+    }
+    previousDistances[0] = distance;
+
+    // take average
+    for (int i = 0; i < AVG_FILTER_SIZE; i++) {
+      averageDistance += previousDistances[i];
+    }
+    averageDistance /= AVG_FILTER_SIZE;
+//    drawRiskValue(riskKinematicTime(currentData, otherData, averageDistance));
+
+     drawRiskValue(reqStopAccelRisk(currentData, otherData, averageDistance));
+//    drawRiskValue(riskHeadway(currentData, otherData, averageDistance));
+    //drawRiskValue(assessRisk(currentData, otherData));
   }
   #endif
+
+  for (int j = 0; j < 3; j++) {
+    // demo: sweep risk up, then sweep risk down
+    for (int i = MIN_RISK; i < MAX_RISK; i++) {
+      drawRiskValue(GET_LCD_RISK(i));
+      delay(50);
+    }
+
+    delay(5000);
+
+    for (int i = MAX_RISK; i > MIN_RISK; i--) {
+      drawRiskValue(GET_LCD_RISK(i));
+      delay(50);
+    }
+
+    delay(5000);
+  }
+
+  drawBlindSpotWarningL(true);
+  delay(1000);
+  drawBlindSpotWarningL(false);
+  delay(1000);
+  drawBlindSpotWarningL(true);
+  delay(1000);
+  drawBlindSpotWarningL(false);
+  delay(1000);
+
+  drawBlindSpotWarningR(true);
+  delay(1000);
+  drawBlindSpotWarningR(false);
+  delay(1000);
+  drawBlindSpotWarningR(true);
+  delay(1000);
+  drawBlindSpotWarningR(false);
+  delay(1000);
+
 }

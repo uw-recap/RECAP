@@ -144,7 +144,7 @@ uint16_t pickColor(int16_t riskValue) {
 /*********** PUBLIC API ***********/
 void setupLCD() {
   tft.begin(SPI_FREQ);
-  tft.setRotation(3);
+  tft.setRotation(1);
   tft.fillScreen(BG_COLOR);
   currentDisplayedRisk = LCD_MAX_RISK;
   drawStaticImages();

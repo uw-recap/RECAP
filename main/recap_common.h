@@ -3,12 +3,18 @@
 
 #include <Arduino.h>
 
-#define USE_OBD 0
+#define USE_OBD 1
 #define USE_GPS 1
 #define USE_LORA 1
-#define USE_LCD 0
+#define USE_LCD 1
 #define USE_DATA_PROC 1
 #define USE_USB 1
+
+#define STATUS_LED 13
+
+// If this macro is defined, then the device is
+// TRANSMIT ONLY otherwise it is RECEIVE ONLY
+//#define TRANSMITTER
 
 #if USE_USB
   #define PRINT(value) Serial.print(value);
@@ -38,3 +44,4 @@ void printCar(Car_t car);
 void printCarLn(Car_t car);
 
 #endif
+

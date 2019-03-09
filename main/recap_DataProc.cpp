@@ -32,6 +32,16 @@ float dist(const Car_t& car1, const Car_t& car2) {
   return haversine(car1.xPosition, car1.yPosition, car2.xPosition, car2.yPosition);
 }
 
+float bearing(float lat1, float long1, float lat2, float long2) {
+  float y = sin(radians(long2-long1)) * cos(radians(lat2));
+  float x = cos(radians(lat1))*sin(radians(lat2)) - sin(radians(lat1))*cos(radians(lat2))*cos(radians(long2-long1));
+  return degrees(atan2(y, x));
+}
+
+float bearing(const Car_t& car1, const Car_t& car2) {
+  return bearing(car1.xPosition, car1.yPosition, car2.xPosition, car2.yPosition);
+}
+
 double relativeAngle(double x0, double y0, double x1, double y1) {
   return atan2((y1-y0), (x1-x0));
 }
@@ -169,4 +179,101 @@ int processData(Car_t myData) {
     }
     return maxRisk;
   }
+}
+
+float lastRiskDistance = 0;
+float lastRiskTime = 0;
+
+int riskStopping(Car_t self, Car_t other, float distance) {
+  float dthem = -sq(other.velocity) / 2 / other.acceleration;
+  float dus = distance + dthem;
+  float aus = -sq(self.velocity) / 2 / dus;
+
+  float risk = (aus - 0.7) * 100/(4.5-0.7);
+
+  return constrain(risk, 0, 100);
+}
+
+int riskHeadway(Car_t self, Car_t other, float distance) {
+  const float minHeadwayTime = 0.5; // seconds
+  const float maxHeadwayTime = 3.0; // seconds
+
+  float minHeadwayDist = minHeadwayTime * self.velocity;
+  float maxHeadwayDist = maxHeadwayTime * self.velocity;
+
+  float risk = (distance - maxHeadwayDist) * 100 / (minHeadwayDist - maxHeadwayDist);
+
+  risk = constrain(risk, 0, 100);
+
+  if(distance > maxHeadwayDist) {
+    risk = 0;
+  }
+
+  // Prints here for testing
+  PRINT(self.velocity);
+  PRINT(",");
+  // PRINT(headwayDist);
+  // PRINT(",");
+  PRINT(distance);
+  PRINT(",");
+  PRINTLN(risk);
+
+  return risk;
+}
+
+int reqStopAccelRisk(Car_t self, Car_t other, float distance) {
+  float a2 = other.acceleration - sq(other.velocity - self.velocity)/(2.0*(max(distance-SAFE_STOP_DIST, SAFE_STOP_DIST)));
+  float risk = constrain((-a2) / BRAKING_ACCELERATION * 300,0,100);
+
+  PRINTLN(risk);
+
+  return risk;
+}
+
+int riskKinematicTime(Car_t self, Car_t other, float distance) {
+  float diffA = other.acceleration - self.acceleration;
+  float diffV = other.velocity - self.velocity;
+  float diffD = distance;
+
+  float a1 = sq(diffV) - 2*diffA*diffD;
+  float a2 = sq(self.velocity) - 2*self.acceleration*diffD;
+
+  float t = 0;
+  float t2 = 0;
+
+ if (a1 >= 0 && diffA != 0) {
+   t = (-diffV-sqrt(a1))/diffA;
+   t2 = (-diffV+sqrt(a1))/diffA;
+ } else if (a2 >= 0 && self.acceleration != 0) {
+   t = (self.velocity-sqrt(a2))/self.acceleration;
+ } else {
+   PRINTLN("RETURN 0")
+   return 0;
+ }
+
+  float tbraking = self.velocity/BRAKING_ACCELERATION;
+  float risk = (tbraking + 0.15)-t;
+
+  return risk;
+}
+
+int assessRisk(Car_t self, Car_t other) {
+  float x = dist(self, other);
+  float dx = x - lastRiskDistance;
+  float t = millis() / 1000.0;
+  float dt = t - lastRiskTime;
+
+  lastRiskTime = t;
+  lastRiskDistance = x;
+
+  if((dx/dt > 0) ||
+     (self.velocity < other.velocity) ||
+     other.acceleration > 0 || // Simplifying assumption for now.
+     (abs(dx/dt) > max(self.velocity, other.velocity))) {
+    return 0;
+  }
+
+  // simplified version for testing
+  return riskHeadway(self, other, x);
+  // return max(riskStopping(self, other, x), riskHeadway(self, other, x));
 }
