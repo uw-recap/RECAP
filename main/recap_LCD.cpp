@@ -6,7 +6,7 @@ int16_t fwWarningLeftBound[LCD_RISK_HEIGHT][2];
 int16_t fwWarningRightBound[LCD_RISK_HEIGHT][2];
 int16_t currentDisplayedRisk;
 
-#define BLINK_STATE_MAX 10
+#define BLINK_STATE_MAX 8
 uint8_t blinkState = 0;
 
 /*********** "PRIVATE" FUNCTIONS ***********/
