@@ -6,9 +6,7 @@ int16_t fwWarningLeftBound[LCD_RISK_HEIGHT][2];
 int16_t fwWarningRightBound[LCD_RISK_HEIGHT][2];
 int16_t currentDisplayedRisk;
 
-#define BLINK_STATE_MAX 16 // must be a power of 2
-#define MASK (BLINK_STATE_MAX >> 1)
-// if first bit is 0, draw red circle; if it is 1, draw black circle
+#define BLINK_STATE_MAX 10
 uint8_t blinkState = 0;
 
 /*********** "PRIVATE" FUNCTIONS ***********/
@@ -34,12 +32,11 @@ void drawRiskCircles(int16_t riskValue) {
       tft.fillCircle(80, 90, 48, YELLOW);
     }
 
-    // check the leading bit of blinkState; if 0 then draw circle; else don't
-    if (!(blinkState & MASK)) {
+    if (blinkState == BLINK_STATE_MAX / 2) {
       // draw filled red circle
       tft.fillCircle(80, 230, 48, RED);
     }
-    else {
+    else if (blinkState == 0) {
       // draw hollow red circle
       tft.fillCircle(80, 230, 48, BG_COLOR);
     }
