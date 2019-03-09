@@ -222,8 +222,8 @@ int riskHeadway(Car_t self, Car_t other, float distance) {
 }
 
 int reqStopAccelRisk(Car_t self, Car_t other, float distance) {
-  float a2 = other.acceleration - sq(other.velocity - self.velocity)/(2.0*(max(distance-SAFE_STOP_DIST, SAFE_STOP_DIST)));
-  float risk = constrain((-a2) / BRAKING_ACCELERATION * 300,0,100);
+  float a2 = other.acceleration - (sq(other.velocity) - sq(self.velocity))/(2.0*(max(distance-SAFE_STOP_DIST, SAFE_STOP_DIST)));
+  float risk = constrain((-a2) / BRAKING_ACCELERATION * 100,0,100);
 
   PRINTLN(risk);
 
