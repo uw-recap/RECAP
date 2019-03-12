@@ -76,7 +76,7 @@ int readOBD(Car_t* car) {
     car->acceleration = ACCEL_IIR_CONST * accelAvg + (1-ACCEL_IIR_CONST) * car->acceleration;
 
     // Truncate the IIR result if it gets really small to avoid loss-of-precision issues
-    car->acceleration = car->acceleration < 0.001 ? 0 : car->acceleration;
+    car->acceleration = abs(car->acceleration) < 0.001 ? 0 : car->acceleration;
 
     car->velocity = obdSpeed / 3.6;
 

@@ -210,21 +210,34 @@ int riskHeadway(Car_t self, Car_t other, float distance) {
   }
 
   // Prints here for testing
-  PRINT(self.velocity);
-  PRINT(",");
-  // PRINT(headwayDist);
-  // PRINT(",");
-  PRINT(distance);
-  PRINT(",");
-  PRINTLN(risk);
+//  PRINT(self.velocity);
+//  PRINT(",");
+//  // PRINT(headwayDist);
+//  // PRINT(",");
+//  PRINT(distance);
+//  PRINT(",");
+//  PRINTLN(risk);
 
   return risk;
 }
 
 int reqStopAccelRisk(Car_t self, Car_t other, float distance) {
-  float a2 = other.acceleration - (sq(other.velocity) - sq(self.velocity))/(2.0*(max(distance-SAFE_STOP_DIST, SAFE_STOP_DIST)));
-  float risk = constrain((-a2) / BRAKING_ACCELERATION * 100,0,100);
+  float a2 = other.acceleration - (sq(self.velocity) - sq(other.velocity))/(2.0*(max(distance-SAFE_STOP_DIST, SAFE_STOP_DIST)));
+  float risk = (-a2) / BRAKING_ACCELERATION * 100;
 
+  // Prints here for testing
+  PRINT(millis());
+  PRINT(",");
+  PRINT(distance);
+  PRINT(",");
+  PRINT(self.velocity);
+  PRINT(",");
+  PRINT(self.acceleration);
+  PRINT(",");
+  PRINT(other.velocity);
+  PRINT(",");
+  PRINT(other.acceleration);
+  PRINT(",");
   PRINTLN(risk);
 
   return risk;

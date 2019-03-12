@@ -10,7 +10,7 @@ bool newDataLoRa = false;
 int lastTransmitTime = 0;
 const int maxTransmitRate = 100;
 
-#define AVG_FILTER_SIZE 5
+#define AVG_FILTER_SIZE 2
 float previousDistances[AVG_FILTER_SIZE];
 
 void setup() {
@@ -119,11 +119,10 @@ void loop() {
       averageDistance += previousDistances[i];
     }
     averageDistance /= AVG_FILTER_SIZE;
-//    drawRiskValue(riskKinematicTime(currentData, otherData, averageDistance));
+
     
-     drawRiskValue(reqStopAccelRisk(currentData, otherData, averageDistance));
-//    drawRiskValue(riskHeadway(currentData, otherData, averageDistance));
-    //drawRiskValue(assessRisk(currentData, otherData));
+    
+    drawRiskValue(reqStopAccelRisk(currentData, otherData, averageDistance));
   }
   #endif
 }
